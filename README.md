@@ -1,57 +1,4 @@
-# Projeto Aura Hub
 
-Repositório do projeto "Projeto-Aura-hub" — aplicação web fullstack construída com Vite, React (TypeScript) no cliente e Node/Express/TypeScript no servidor.
-
-## Visão rápida
-
-- Frontend: `client/` (React + TypeScript, Vite)
-- Backend: `server/` (Node + Express + TypeScript)
-
-## Pré-requisitos
-
-- Node.js v16+ e npm ou pnpm
-- Git
-
-## Instalação (modo rápido)
-
-1. Instale dependências na raiz (se houver scripts específicos no monorepo):
-
-```bash
-cd C:\Users\maria\Downloads\aura-hubb
-npm install
-```
-
-2. Para rodar o cliente em modo de desenvolvimento:
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-3. Para rodar o servidor em desenvolvimento:
-
-```bash
-cd server
-npm install
-npm run dev
-```
-
-Consulte `package.json` na raiz e nas pastas `client/` e `server/` para scripts disponíveis.
-
-## Estrutura principal
-
-- `client/` - aplicativo React + componentes
-- `server/` - API e lógica do backend
-- `public/` - ativos estáticos
-
-## Licença
-
-Sem licença especificada. Se quiser, posso adicionar um `LICENSE` (MIT, Apache-2.0, etc.).
-
-## Observações
-
-Este README é minimalista. Posso expandi-lo com instruções de testes, deploy (Netlify/Heroku/Vercel), ambiente `.env` e um `.gitignore` se desejar.
 # AURA-HUBB
 
 Plataforma de gerenciamento para bolsistas e responsáveis de projetos acadêmicos.
@@ -182,10 +129,3 @@ npm start
 └── dist/               # Build de produção
 ```
 
-## Licença
-
-Este projeto é licenciado sob a [Licença MIT](https://opensource.org/licenses/MIT).
-
-## Contato
-
-Para mais informações, entre em contato com os mantedores do projeto.
