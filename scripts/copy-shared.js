@@ -34,6 +34,11 @@ async function main() {
     const repoRoot = path.resolve(__dirname, '..');
     const src = path.join(repoRoot, 'shared');
     const dest = path.join(repoRoot, 'server', 'shared');
+    // if no root shared, just skip copy (tolerant)
+    if (!fs.existsSync(src)) {
+      console.log(`Source not found: ${src} - skipping copy`);
+      process.exit(0);
+    }
     // remove existing dest then copy
     if (fs.existsSync(dest)) {
       await rmDir(dest);
