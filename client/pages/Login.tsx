@@ -1,22 +1,84 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import "../formal-theme.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Eye, EyeOff, LogIn, User } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LogIn, Settings, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../services/api";
+import authService from "../services/authService";
+import { useToast } from "@/hooks/use-toast"; // ajuste o caminho conforme seu projeto
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [showDebugConsole, setShowDebugConsole] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>({});
+  const [formData, setFormData] = useState({ login: "", senha: "" });
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    runDiagnostics();
+  }, []);
+
+  const runDiagnostics = async () => {
+    console.log("🔍 Executando diagnósticos...");
+
+    const diagnostics: any = {
+      timestamp: new Date().toISOString(),
+      currentURL: window.location.href,
+  apiURL: (import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:3001/api",
+      environment: {
+        NODE_ENV: import.meta?.env?.NODE_ENV,
+        MODE: import.meta?.env?.MODE,
+        VITE_API_URL: import.meta?.env?.VITE_API_URL,
+      },
+      network: {
+        online: navigator.onLine,
+        userAgent: navigator.userAgent,
+      },
+      localStorage: {
+        hasToken: !!localStorage.getItem("token"),
+        hasUser: !!localStorage.getItem("usuario"),
+      },
+    };
+
+    try {
+      const connectivityTest = await authService.testConnectivity();
+      diagnostics.connectivity = connectivityTest;
+    } catch (error: any) {
+      diagnostics.connectivity = { success: false, error: error.message };
+    }
+
+    try {
+      const response = await fetch(`${diagnostics.apiURL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: "teste", senha: "teste123" }),
+      });
+
+      diagnostics.endpointTests = {
+        "/auth/login": {
+          status: response.status,
+          statusText: response.statusText,
+          accessible: response.ok,
+        },
+      };
+    } catch (error: any) {
+      diagnostics.endpointTests = {
+        "/auth/login": {
+          accessible: false,
+          error: error.message,
+        },
+      };
+    }
+
+    setDebugInfo(diagnostics);
+    console.log("📊 Diagnósticos completos:", diagnostics);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,72 +86,38 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const { login, senha } = formData;
+    if (!login || !senha) {
+      toast({ title: "❌ Preencha login e senha" });
+      return;
+    }
+
+    console.log("Tentando fazer login:", { login, senha });
     setIsLoading(true);
+    setMessage("");
 
     try {
-      console.log("Tentando fazer login:", { email: formData.email });
+      const response = await authService.login(login, senha);
+      console.log("Login bem-sucedido:", response.data);
 
-      const response = await authService.login(
-        formData.email,
-        formData.password,
-      );
+      if (response.data?.success) {
+        const { token, usuario, redirect } = response.data.data;
 
-      console.log("Resposta do login:", response.data);
+        // Salva no localStorage
+        if (token) localStorage.setItem("token", token);
+        if (usuario) localStorage.setItem("usuario", JSON.stringify(usuario));
 
-      if (response.data.success) {
-        // Salvar dados do usuário (backend retorna em response.data.user)
-        const userData = (response.data as any).user;
-        if (userData) {
-          localStorage.setItem("user", JSON.stringify(userData));
-        }
+        setMessage(`✅ Login realizado com sucesso! Bem-vindo, ${usuario?.nome_completo || "usuário"}!`);
 
-        setMessage(
-          `✅ Login realizado com sucesso! Bem-vindo, ${userData?.nome || "usuário"}!`,
-        );
-
-        // Redirecionar baseado no tipo de usuário
-        if (userData?.tipo === "admin") {
-          setTimeout(() => navigate("/admin"), 1500);
-        } else {
-          setTimeout(() => navigate("/dashboard"), 1500);
-        }
+        // Redireciona para o painel ou rota da API
+        navigate(redirect || "/painel");
       } else {
-        setMessage("❌ Credenciais inválidas. Verifique seu email e senha.");
+        setMessage("❌ Credenciais inválidas. Verifique seu login e senha.");
       }
-    } catch (error: any) {
-      console.error("Erro no login:", error);
-
-      if (error.response) {
-        const errorMessage =
-          error.response.data.message || error.response.data.erro;
-
-        switch (error.response.status) {
-          case 400:
-            setMessage("❌ Email e senha são obrigatórios.");
-            break;
-          case 404:
-            setMessage("��� Usuário não encontrado. Verifique seu email.");
-            break;
-          case 401:
-            setMessage("❌ Senha incorreta. Tente novamente.");
-            break;
-          case 500:
-            setMessage("❌ Erro interno do servidor. Contate o administrador.");
-            break;
-          default:
-            setMessage(`❌ ${errorMessage || "Erro ao fazer login."}`);
-        }
-      } else if (error.request) {
-        setMessage(
-          "⚠️ Erro de conexão com o servidor.\n\n" +
-            "Verifique se:\n" +
-            "• XAMPP está rodando\n" +
-            "• Apache está ativo\n" +
-            "• URL: http://localhost/Projeto-Ufla/login.php está acessível",
-        );
-      } else {
-        setMessage(`❌ Erro inesperado: ${error.message}`);
-      }
+    } catch (err: any) {
+      console.error("Erro no login:", err);
+      setMessage("❌ Erro ao tentar logar. Tente novamente mais tarde.");
     } finally {
       setIsLoading(false);
     }
@@ -132,40 +160,28 @@ const Login: React.FC = () => {
           <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Email
-                </Label>
+                <Label htmlFor="login">Login</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
+                  id="login"
+                  name="login"
+                  type="text"
                   required
-                  value={formData.email}
+                  value={formData.login}
                   onChange={handleChange}
-                  className="h-10 sm:h-12 text-sm sm:text-base"
-                  placeholder="Digite seu email"
+                  placeholder="Digite seu login"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Senha
-                </Label>
+                <Label htmlFor="senha">Senha</Label>
                 <div className="relative">
                   <Input
-                    id="password"
-                    name="password"
+                    id="senha"
+                    name="senha"
                     type={showPassword ? "text" : "password"}
                     required
-                    value={formData.password}
+                    value={formData.senha}
                     onChange={handleChange}
-                    className="h-10 sm:h-12 pr-10 sm:pr-12 text-sm sm:text-base"
                     placeholder="Digite sua senha"
                   />
                   <Button
@@ -175,36 +191,23 @@ const Login: React.FC = () => {
                     className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
 
-              {/* Status Message */}
               {message && (
                 <Alert
-                  className={
-                    message.includes("✅")
-                      ? "border-green-200 bg-green-50"
-                      : "border-red-200 bg-red-50"
-                  }
+                  className={message.includes("✅") ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}
                 >
                   <AlertDescription
-                    className={
-                      message.includes("✅") ? "text-green-700" : "text-red-700"
-                    }
-                    style={{ whiteSpace: "pre-line" }}
+                    className={message.includes("✅") ? "text-green-700" : "text-red-700"}
                   >
                     {message}
                   </AlertDescription>
                 </Alert>
               )}
 
-              {/* Login Button */}
               <Button
                 type="submit"
                 className="w-full h-12 sm:h-14 text-base sm:text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
@@ -214,7 +217,6 @@ const Login: React.FC = () => {
               </Button>
             </form>
 
-            {/* Footer Links */}
             <div className="text-center pt-4 sm:pt-6 border-t space-y-2 sm:space-y-3">
               <p className="text-xs sm:text-sm text-gray-600">
                 Não tem uma conta?{" "}
@@ -232,17 +234,6 @@ const Login: React.FC = () => {
                 >
                   Voltar ao início
                 </button>
-              </p>
-            </div>
-
-            {/* Test Users Info */}
-            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg text-xs sm:text-sm">
-              <h4 className="font-semibold text-gray-700 mb-1 sm:mb-2">
-                💡 Para teste:
-              </h4>
-              <p className="text-gray-600">
-                Use as credenciais que você criou durante o cadastro, ou
-                verifique com o administrador se sua conta foi aprovada.
               </p>
             </div>
           </CardContent>

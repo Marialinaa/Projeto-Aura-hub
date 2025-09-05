@@ -1,65 +1,90 @@
 import express from "express";
 import cors from "cors";
-import { handleDemo } from "./routes/demo";
-import {
-  handleListUsers,
-  handleUpdateUserStatus,
-  handleGetUser,
-} from "./routes/users";
-import { handleLogin, handleRegister } from "./routes/auth";
-import { 
-  handleCreateXpto, 
-  handleListXpto, 
-  handleGetFoto, 
-  handleDeleteXpto,
-  uploadFoto 
-} from "./routes/xpto";
-import {
-  handleListAtribuicoes,
-  handleCreateAtribuicao,
-  handleUpdateAtribuicao,
-  handleDeleteAtribuicao
-} from "./routes/atribuicoes";
-import { inicializarEmail } from "./email";
+import dotenv from "dotenv";
+import morgan from "morgan";
+import helmet from "helmet";
+import routes from "./routes";
+import { testDatabaseConnection } from "./config/database";
+import { verificarConfiguracao } from "./config/email";
 
-export function createServer() {
-  const app = express();
+// Carregar variáveis de ambiente
+dotenv.config();
 
-  // Inicializar serviço de email
-  inicializarEmail();
+// Criar aplicação Express
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-  // Middleware
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+// Middleware de segurança
+app.use(helmet());
 
-  // Example API routes
-  app.get("/api/ping", (_req, res) => {
-    res.json({ message: "Hello from Express server v2!" });
+// Configurar CORS
+app.use(
+  cors({
+  // usar a URL real do frontend definida em CORS_ORIGIN no ambiente
+  origin: process.env.CORS_ORIGIN,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Logging de requisições
+app.use(morgan("dev"));
+
+// Parser para JSON
+app.use(express.json());
+
+// Parser para dados de formulário
+app.use(express.urlencoded({ extended: true }));
+
+// Rota de teste
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "API funcionando normalmente",
+    timestamp: new Date().toISOString(),
   });
+});
 
-  app.get("/api/demo", handleDemo);
+// Usar rotas da API
+app.use("/api", routes);
 
-  // Authentication routes
-  app.post("/api/login", handleLogin);
-  app.post("/api/register", handleRegister);
+// Rota de fallback
+app.use("*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Rota não encontrada",
+  });
+});
 
-  // User management routes
-  app.get("/api/users", handleListUsers);
-  app.put("/api/users", handleUpdateUserStatus);
-  app.get("/api/users/:id", handleGetUser);
+// Iniciar servidor
+const startServer = async () => {
+  try {
+    // Testar conexão com o banco de dados
+    await testDatabaseConnection();
 
-  // Atribuições routes
-  app.get("/api/atribuicoes", handleListAtribuicoes);
-  app.post("/api/atribuicoes", handleCreateAtribuicao);
-  app.put("/api/atribuicoes/:id", handleUpdateAtribuicao);
-  app.delete("/api/atribuicoes/:id", handleDeleteAtribuicao);
+    // Verificar configuração de email
+    await verificarConfiguracao();
 
-  // XPTO routes
-  app.post("/api/xpto", uploadFoto, handleCreateXpto);
-  app.get("/api/xpto", handleListXpto);
-  app.get("/api/xpto/:id/foto", handleGetFoto);
-  app.delete("/api/xpto/:id", handleDeleteXpto);
+    // Iniciar servidor Express
+    // ✅ Novo
+    const HOST = "0.0.0.0"; // aceita conexões de qualquer lugar (localhost, emulador, celular na mesma rede)
+    const PORT_NUM = Number(PORT) || 3001;
 
-  return app;
-}
+    app.listen(PORT_NUM, HOST, () => {
+      console.log("=======================================================");
+      console.log(`🚀 Servidor rodando na porta ${PORT_NUM}`);
+      console.log(`📝 Localhost:     http://localhost:${PORT_NUM}/api/health`);
+      console.log(`📝 Emulador AVD:  http://10.0.2.2:${PORT_NUM}/api/health`);
+      console.log(`📝 Rede Local:    http://192.168.x.x:${PORT_NUM}/api/health`);
+      console.log("=======================================================");
+    });
+  } catch (error) {
+    console.error("❌ Erro ao iniciar o servidor:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+// Exportar a factory do app para reutilização (ex: node-build.ts)
+export const createServer = () => app;

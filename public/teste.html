@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Frontend - AURA HUBB</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #cce7ff; border: 1px solid #99d6ff; color: #0066cc; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste do Frontend - AURA HUBB</h1>
+    
+    <div>
+        <h2>Testes de Conectividade</h2>
+        <button onclick="testarFrontend()">Testar Frontend</button>
+        <button onclick="testarAPI()">Testar API Backend</button>
+        <button onclick="testarParseJSON()">Testar Parse JSON</button>
+        <button onclick="limparResultados()">Limpar Resultados</button>
+    </div>
+    
+    <div id="resultados"></div>
+    
+    <script>
+        function adicionarResultado(tipo, titulo, mensagem) {
+            const div = document.createElement('div');
+            div.className = `test-result ${tipo}`;
+            div.innerHTML = `<strong>${titulo}</strong><br>${mensagem}`;
+            document.getElementById('resultados').appendChild(div);
+        }
+        
+        function limparResultados() {
+            document.getElementById('resultados').innerHTML = '';
+        }
+        
+        function testarFrontend() {
+            adicionarResultado('success', '✅ Frontend', 'Frontend está funcionando normalmente!');
+            adicionarResultado('info', '📝 Informações', `
+                URL: ${window.location.href}<br>
+                User Agent: ${navigator.userAgent}<br>
+                Timestamp: ${new Date().toISOString()}
+            `);
+        }
+        
+        async function testarAPI() {
+            const API_URL = 'http://localhost:3002/api';
+            
+            try {
+                adicionarResultado('info', '🔄 Testando API', `Tentando conectar com: ${API_URL}/health`);
+                
+                const response = await fetch(`${API_URL}/health`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    adicionarResultado('success', '✅ API Backend', `
+                        Status: ${response.status}<br>
+                        Resposta: ${JSON.stringify(data, null, 2)}
+                    `);
+                } else {
+                    adicionarResultado('error', '❌ API Backend', `
+                        Status: ${response.status}<br>
+                        StatusText: ${response.statusText}
+                    `);
+                }
+            } catch (error) {
+                adicionarResultado('error', '❌ Erro de Conexão', `
+                    Não foi possível conectar com o backend:<br>
+                    ${error.message}
+                `);
+            }
+        }
+        
+        async function testarParseJSON() {
+            // Simular o erro que estava acontecendo
+            const jsonValido = '{"success": true, "data": [{"id": 1, "nome": "Teste"}]}';
+            const jsonInvalido = '{"success": true, "data": [{"id": 1, "nome": "Teste"}  }   }';
+            
+            try {
+                // Teste com JSON válido
+                const resultadoValido = JSON.parse(jsonValido);
+                adicionarResultado('success', '✅ JSON Válido', `
+                    Parse bem-sucedido:<br>
+                    ${JSON.stringify(resultadoValido, null, 2)}
+                `);
+            } catch (error) {
+                adicionarResultado('error', '❌ JSON Válido Falhou', error.message);
+            }
+            
+            try {
+                // Teste com JSON inválido (simular o erro original)
+                const resultadoInvalido = JSON.parse(jsonInvalido);
+                adicionarResultado('error', '⚠️ JSON Inválido Passou?', 'Isso não deveria ter funcionado!');
+            } catch (error) {
+                adicionarResultado('info', '📝 JSON Inválido', `
+                    Erro esperado capturado:<br>
+                    ${error.message}
+                `);
+            }
+        }
+        
+        // Executar teste básico ao carregar
+        window.onload = function() {
+            testarFrontend();
+        };
+    </script>
+</body>
+</html>

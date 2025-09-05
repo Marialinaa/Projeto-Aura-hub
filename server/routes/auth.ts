@@ -308,3 +308,316 @@ export const handleRegister = async (req: Request, res: Response) => {
     });
   }
 };
+
+import express from 'express';
+import { db } from '../database';
+import jwt from 'jsonwebtoken';
+import { sendEmail } from '../email';
+
+const router = express.Router();
+
+// Rota para registro de usuários
+router.post('/register', async (req, res) => {
+  try {
+    const { nome, email, senha, tipo = 'usuario' } = req.body;
+    
+    // Validação básica
+    if (!nome || !email || !senha) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Dados incompletos para cadastro' 
+      });
+    }
+    
+    // Verificar se o email já existe
+    const [existingUsers] = await db.execute(
+      'SELECT * FROM usuarios WHERE email = ?',
+      [email]
+    );
+    
+    if (Array.isArray(existingUsers) && existingUsers.length > 0) {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Este email já está cadastrado' 
+      });
+    }
+    
+    // Hash da senha
+    const hashedPassword = await bcrypt.hash(senha, 10);
+    
+    // Inserir usuário como pendente
+    const [result] = await db.execute(
+      'INSERT INTO usuarios (nome, email, senha, tipo, status, data_solicitacao) VALUES (?, ?, ?, ?, ?, NOW())',
+      [nome, email, hashedPassword, tipo, 'pendente']
+    );
+    
+    // Obter o ID inserido
+    const userId = (result as any).insertId;
+    
+    // Enviar notificação para admin (opcional)
+    try {
+      await sendEmail({
+        to: 'admin@example.com', // Email do administrador
+        subject: 'Nova solicitação de acesso',
+        text: `O usuário ${nome} (${email}) solicitou acesso ao sistema. Acesse o painel de administração para aprovar ou rejeitar.`,
+      });
+      console.log('✉️ Email de notificação enviado ao admin');
+    } catch (emailError) {
+      console.error('Erro ao enviar email de notificação:', emailError);
+      // Não interrompe o fluxo se o email falhar
+    }
+    
+    console.log(`👤 Novo usuário registrado com ID ${userId} e status 'pendente'`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Solicitação de acesso enviada com sucesso. Aguarde aprovação.',
+      userId
+    });
+    
+  } catch (error) {
+    console.error('Erro no registro:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao processar solicitação de acesso',
+      error: (error as Error).message
+    });
+  }
+});
+
+// Rota para login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, senha } = req.body;
+    
+    // Validação básica
+    if (!email || !senha) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email e senha são obrigatórios' 
+      });
+    }
+    
+    // Buscar usuário pelo email
+    const [users] = await db.execute(
+      'SELECT * FROM usuarios WHERE email = ?',
+      [email]
+    );
+    
+    const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Credenciais inválidas' 
+      });
+    }
+    
+    // Verificar status do usuário
+    if (user.status === 'pendente') {
+      return res.status(403).json({
+        success: false,
+        message: 'Sua conta está aguardando aprovação por um administrador'
+      });
+    }
+    
+    if (user.status === 'bloqueado') {
+      return res.status(403).json({
+        success: false,
+        message: 'Sua conta está bloqueada. Entre em contato com o administrador.'
+      });
+    }
+    
+    // Verificar senha
+    const passwordMatch = await bcrypt.compare(senha, user.senha);
+    
+    if (!passwordMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Credenciais inválidas' 
+      });
+    }
+    
+    // Gerar token JWT
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        tipo: user.tipo
+      },
+      process.env.JWT_SECRET || 'secret_default_key', // Use uma variável de ambiente real
+      { expiresIn: '24h' }
+    );
+    
+    console.log(`🔓 Login bem-sucedido: ${user.email} (${user.tipo})`);
+    
+    // Remover senha antes de enviar resposta
+    const { senha: _, ...userWithoutPassword } = user;
+    
+    res.json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      token,
+      user: userWithoutPassword
+    });
+    
+  } catch (error) {
+    console.error('Erro no login:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao processar login',
+      error: (error as Error).message
+    });
+  }
+});
+
+// Rota para listar todos os usuários (para o painel admin)
+router.get('/usuarios', async (req, res) => {
+  try {
+    // Em produção, adicione verificação de permissão aqui
+    
+    // Buscar todos os usuários
+    const [users] = await db.execute(
+      'SELECT id, nome, email, tipo, status, data_solicitacao FROM usuarios ORDER BY data_solicitacao DESC'
+    );
+    
+    console.log(`📋 Listando ${Array.isArray(users) ? users.length : 0} usuários`);
+    
+    res.json({
+      success: true,
+      data: users
+    });
+    
+  } catch (error) {
+    console.error('Erro ao listar usuários:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao listar usuários',
+      error: (error as Error).message
+    });
+  }
+});
+
+// Rota para aprovar um usuário
+router.put('/usuarios/:id/aprovar', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar se o usuário existe
+    const [users] = await db.execute(
+      'SELECT * FROM usuarios WHERE id = ?',
+      [id]
+    );
+    
+    if (!Array.isArray(users) || users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado'
+      });
+    }
+    
+    // Atualizar status para "liberado"
+    await db.execute(
+      'UPDATE usuarios SET status = ? WHERE id = ?',
+      ['liberado', id]
+    );
+    
+    const user = users[0];
+    
+    // Enviar email de notificação ao usuário
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Acesso Aprovado',
+        text: `Olá ${user.nome}, sua solicitação de acesso foi aprovada. Você já pode fazer login no sistema.`,
+      });
+      console.log(`✉️ Email de aprovação enviado para ${user.email}`);
+    } catch (emailError) {
+      console.error('Erro ao enviar email de aprovação:', emailError);
+      // Não interrompe o fluxo se o email falhar
+    }
+    
+    console.log(`✅ Usuário ${id} aprovado com sucesso`);
+    
+    res.json({
+      success: true,
+      message: 'Usuário aprovado com sucesso'
+    });
+    
+  } catch (error) {
+    console.error('Erro ao aprovar usuário:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao aprovar usuário',
+      error: (error as Error).message
+    });
+  }
+});
+
+// Rota para rejeitar/bloquear um usuário
+router.put('/usuarios/:id/rejeitar', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar se o usuário existe
+    const [users] = await db.execute(
+      'SELECT * FROM usuarios WHERE id = ?',
+      [id]
+    );
+    
+    if (!Array.isArray(users) || users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado'
+      });
+    }
+    
+    // Atualizar status para "bloqueado"
+    await db.execute(
+      'UPDATE usuarios SET status = ? WHERE id = ?',
+      ['bloqueado', id]
+    );
+    
+    const user = users[0];
+    
+    // Enviar email de notificação ao usuário
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Acesso Bloqueado',
+        text: `Olá ${user.nome}, sua solicitação de acesso foi rejeitada ou sua conta foi bloqueada. Entre em contato com o administrador para mais informações.`,
+      });
+      console.log(`✉️ Email de rejeição enviado para ${user.email}`);
+    } catch (emailError) {
+      console.error('Erro ao enviar email de rejeição:', emailError);
+      // Não interrompe o fluxo se o email falhar
+    }
+    
+    console.log(`🚫 Usuário ${id} bloqueado com sucesso`);
+    
+    res.json({
+      success: true,
+      message: 'Usuário bloqueado com sucesso'
+    });
+    
+  } catch (error) {
+    console.error('Erro ao bloquear usuário:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao bloquear usuário',
+      error: (error as Error).message
+    });
+  }
+});
+
+// Rota para verificar status do backend
+router.get('/status', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API funcionando normalmente',
+    timestamp: new Date().toISOString()
+  });
+});
+
+export default router;
+

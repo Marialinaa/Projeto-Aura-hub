@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">aura-hub</string>
+    <string name="title_activity_main">aura-hub</string>
+    <string name="package_name">mariaLina.app</string>
+    <string name="custom_url_scheme">mariaLina.app</string>
+</resources>

@@ -1,48 +1,36 @@
-import { defineConfig, Plugin } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { createServer } from "./server";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
-export default defineConfig(({ mode }) => ({
-  // Configurações do servidor de desenvolvimento
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
-    host: "::",
-    port: 8080,
-    // Proxy para redirecionar requisições PHP
+    port: 3000,
+    strictPort: true, // Isso fará com que o Vite falhe se a porta 3000 não estiver disponível
     proxy: {
-      '/php-files': {
-        target: 'http://localhost',
+      '/api': {
+        target: 'http://localhost:3005',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/php-files/, '/aura-hub/php-files')
+        secure: false,
+        rewrite: (path) => path,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
       }
     }
   },
-  // Configurações de build
-  build: {
-    outDir: "dist/spa",
-  },
-  // Plugins utilizados
-  plugins: [react(), expressPlugin()],
-  // Configuração de aliases para imports
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./client"),
-      "@shared": path.resolve(__dirname, "./shared"),
-    },
-  },
-}));
-
-// Plugin personalizado para integrar Express com Vite
-function expressPlugin(): Plugin {
-  return {
-    name: "express-plugin",
-    apply: "serve", // Aplica apenas no modo de desenvolvimento
-    configureServer(server) {
-      // Cria instância do servidor Express
-      const app = createServer();
-
-      // Integra o Express com os middlewares do Vite
-      server.middlewares.use(app);
-    },
-  };
-}
+})

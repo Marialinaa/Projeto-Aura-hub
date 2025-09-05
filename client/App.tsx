@@ -11,8 +11,10 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Admin from "./pages/Admin";
 import Dashboard from "./pages/Dashboard";
-import Xpto from "./pages/Xpto";
-import NotFound from "./pages/NotFound";
+import BolsistaDashboard from "./pages/BolsistaDashboard";
+import ResponsavelDashboard from "./pages/ResponsavelDashboard";
+import TesteComponents from "./pages/TesteComponents";
+import TesteAdminOriginal from "./pages/TesteAdminOriginal";
 
 const queryClient = new QueryClient();
 
@@ -28,11 +30,12 @@ const App = () => (
           <Route path="/signup" element={<SignUp />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/xpto" element={<Xpto />} />
+          <Route path="/bolsista" element={<BolsistaDashboard />} />
+          <Route path="/responsavel" element={<ResponsavelDashboard />} />
+          <Route path="/teste" element={<TesteComponents />} />
+          <Route path="/teste-admin" element={<TesteAdminOriginal />} />
           {/* Backward compatibility */}
-          <Route path="/signin" element={<SignUp />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+         
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

@@ -15,9 +15,12 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../services/api";
-import type { RegistrationData } from "@shared/types";
+import authService  from "../services/authService";
+import axios from 'axios';
+import config from "../src/config";
 
+
+import "../formal-theme.css";
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +38,9 @@ const SignUp: React.FC = () => {
   });
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -64,44 +70,48 @@ const SignUp: React.FC = () => {
     setMessage("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    if (formData.senha !== formData.confirmarSenha) {
-      setMessage("As senhas não conferem.");
-      setIsLoading(false);
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    // Implementar debounce para evitar múltiplos cliques
+    if (isSubmitting || isLoading) {
+      console.log('Submissão já em andamento, ignorando...');
       return;
     }
 
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+    setIsSubmitting(true);
+    
     try {
-      // Preparar dados para envio ao backend baseado no tipo de usuário
-      let dadosRegistro: any;
+      console.log('Enviando solicitação de acesso:', formData);
 
-      if (formData.tipoUsuario === "responsavel") {
-        dadosRegistro = {
-          nome: formData.nomeCompleto,
-          funcao: formData.funcao,
-          email: formData.email,
-          login: formData.login,
-          senha: formData.senha,
-          tipoUsuario: "responsavel",
-          enviarEmailAdmin: true,
-        };
-      } else {
-        dadosRegistro = {
-          nome: formData.nomeCompleto,
-          matricula: formData.matricula,
-          curso: formData.curso,
-          email: formData.email,
-          login: formData.login,
-          senha: formData.senha,
-          tipoUsuario: "bolsista",
-          enviarEmailAdmin: true,
-        };
+      // Adicionar validação dos campos
+      if (!formData.nomeCompleto || !formData.email || !formData.login || !formData.senha || !formData.tipoUsuario) {
+        setError('Todos os campos obrigatórios devem ser preenchidos');
+        return;
       }
 
-      console.log(`Enviando solicitação de acesso para ${formData.tipoUsuario}:`, dadosRegistro);
+      // Validar se as senhas coincidem
+      if (formData.senha !== formData.confirmarSenha) {
+        setError('As senhas não coincidem');
+        return;
+      }
+
+      // Converter tipo_usuario para o valor esperado pelo backend
+      const tipo_usuario = formData.tipoUsuario === 'bolsista' ? 'bolsistas' : 'responsaveis';
+
+      // Enviar apenas os campos esperados pela API
+      const dadosRegistro = {
+        nome: formData.nomeCompleto,
+        email: formData.email,
+        senha: formData.senha,
+        tipo_usuario,
+        login: formData.login,
+      };
+
+      console.log(`Enviando solicitação de acesso para ${tipo_usuario}:`, dadosRegistro);
 
       // Enviar dados usando o serviço de API
       const response = await authService.register(dadosRegistro);
@@ -140,8 +150,8 @@ const SignUp: React.FC = () => {
         const status = error.response.status;
         const data = error.response.data;
 
-        // Backend retorna campo 'erro' para mensagens de erro
-        const errorMessage = data.erro || data.message || "Erro no servidor";
+        // Backend retorna campo 'message' para mensagens de erro
+        const errorMessage = data.message || data.erro || "Erro no servidor";
 
         switch (status) {
           case 400:
@@ -153,7 +163,7 @@ const SignUp: React.FC = () => {
             );
             break;
           case 409:
-            setMessage(`❌ ${errorMessage} (Dados já existem)`);
+            setMessage(`❌ ${errorMessage}`);
             break;
           case 500:
             setMessage(`❌ Erro interno do servidor: ${errorMessage}`);
@@ -165,8 +175,8 @@ const SignUp: React.FC = () => {
         // Erro de rede/conexão
         setMessage(
           "⚠️ Erro de conexão com o servidor. Verifique:\n" +
-            "• Se o servidor Apache está rodando (http://localhost/Projeto-Ufla/)\n" +
-            "• Se o arquivo register.php existe\n" +
+           "• Se o servidor backend Node está rodando (ex: " + (config && config.API_URL ? config.API_URL : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api/')) + ")\n" +
+            "• Se o arquivo api_usuarios.php existe\n" +
             "• Se não há bloqueio de CORS",
         );
       } else {
@@ -174,6 +184,10 @@ const SignUp: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
+      // Permitir nova submissão após um intervalo para evitar spam
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 2000); // 2 segundos
     }
   };
 
@@ -415,7 +429,6 @@ const SignUp: React.FC = () => {
                           name="senha"
                           type={showPassword ? "text" : "password"}
                           required
-                          value={formData.senha}
                           onChange={handleChange}
                           className="h-12 pr-12"
                           placeholder="Digite sua senha"
@@ -449,7 +462,6 @@ const SignUp: React.FC = () => {
                           name="confirmarSenha"
                           type={showConfirmPassword ? "text" : "password"}
                           required
-                          value={formData.confirmarSenha}
                           onChange={handleChange}
                           className="h-12 pr-12"
                           placeholder="Confirme sua senha"
@@ -510,6 +522,20 @@ const SignUp: React.FC = () => {
                     }
                   >
                     {message}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {error && (
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertDescription className="text-red-700">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {success && (
+                <Alert className="border-green-200 bg-green-50">
+                  <AlertDescription className="text-green-700">
+                    {success}
                   </AlertDescription>
                 </Alert>
               )}
