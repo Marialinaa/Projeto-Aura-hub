@@ -18,6 +18,18 @@ function isAndroidEmulator() {
 
 // Resolvido de forma síncrona (útil para inicialização rápida)
 export function getApiUrlSync(): string {
+  // Forçar proxy em desenvolvimento quando rodando em localhost (evita depender de env vars)
+  try {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname || '';
+      if (host.includes('localhost') || host.startsWith('192.168.') || host === '127.0.0.1') {
+        return LOCAL_URL; // '/api' por padrão
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
   if (import.meta.env.MODE === 'production' && PROD_URL) return PROD_URL;
   if (isAndroidEmulator() && EMULATOR_URL) return EMULATOR_URL;
   return LOCAL_URL;
@@ -47,6 +59,14 @@ export async function getApiUrlRuntime(): Promise<string> {
 
 // Valor rápido para usar em módulos que precisam de uma constante
 export const API_URL = getApiUrlSync();
+
+// Log curto para depuração (será removido depois)
+try {
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.log('[config] API_URL resolved to:', API_URL);
+  }
+} catch (e) {}
 
 export default {
   API_URL,

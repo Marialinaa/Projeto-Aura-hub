@@ -3,7 +3,15 @@ import { Atribuicao } from "./atribuicaoService";
 import { Usuario } from "./usuarioService";
 import config from "../src/config";
 
-const API_BASE_URL = config.API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = (config.API_URL || '').replace(/\/$/, '');
+
+// Debug: mostrar qual baseURL está sendo usada (ajuda a diagnosticar chamadas que ignoram o proxy)
+try {
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.log('[api] API_BASE_URL =', API_BASE_URL);
+  }
+} catch (e) {}
 
 // Define a URL base da API - usando o helper do projeto
 const API_URL = API_BASE_URL;
@@ -240,3 +248,6 @@ export async function getRegistrosEntrada(bolsistaId = null) {
 }
 
 export default api;
+
+// Re-export types for older imports that expect them from '@/services/api'
+export type { Atribuicao, Usuario };
