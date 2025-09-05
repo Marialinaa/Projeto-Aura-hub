@@ -1,9 +1,11 @@
 // Utilitário de configuração de API para o frontend
 // Escolhe a melhor URL baseada em variáveis de ambiente ou consulta /api/config em desenvolvimento
 
-const PROD_URL = import.meta.env.VITE_API_PROD as string | undefined;
+const PROD_URL = (import.meta.env.VITE_API_PROD as string | undefined) || 'https://back-end-aura-hubb-production.up.railway.app/api';
 const EMULATOR_URL = import.meta.env.VITE_API_EMULATOR as string | undefined;
-const LOCAL_URL = import.meta.env.VITE_API_LOCAL as string | undefined || 'http://localhost:3001/api';
+// Em ambiente de desenvolvimento, use o proxy do Vite (rota relativa '/api')
+// Isso evita problemas de CORS e facilita testes locais.
+const LOCAL_URL = (import.meta.env.VITE_API_LOCAL as string | undefined) || '/api';
 
 // Detecta se estamos rodando no emulador Android (heurística simples)
 function isAndroidEmulator() {
