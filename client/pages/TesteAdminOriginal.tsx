@@ -72,7 +72,7 @@ const TesteAdminOriginal = () => {
     log('\n🔧 === TESTE DA SOLUÇÃO ATUAL ===');
     
     // Simular chamada para a nova API
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+    const API_URL = (config.API_URL || '').replace(/\/$/, '');
     log(`🔗 URL da API: ${API_URL}`);
     
     try {
@@ -170,7 +170,7 @@ const TesteAdminOriginal = () => {
         <h3>📊 Resumo dos Testes</h3>
         <p><strong>Problema Original:</strong> O servidor PHP estava retornando JSON malformado com caracteres extras.</p>
         <p><strong>Solução Implementada:</strong> Mudança para API Node.js que retorna JSON bem formado.</p>
-  <p><strong>URL Nova/API:</strong> <code>{config.API_URL || import.meta.env.VITE_API_URL || "http://localhost:3001/api"}</code></p>
+  <p><strong>URL Nova/API:</strong> <code>{(config.API_URL || (import.meta.env.VITE_API_URL as string | undefined) || 'NÃO CONFIGURADA').replace(/\/$/, '')}</code></p>
       </div>
     </div>
   );

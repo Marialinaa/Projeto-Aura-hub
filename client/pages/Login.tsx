@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Eye, EyeOff, LogIn, Settings, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
+import config from "../src/config";
 import { useToast } from "@/hooks/use-toast"; // ajuste o caminho conforme seu projeto
 
 const Login: React.FC = () => {
@@ -30,7 +31,7 @@ const Login: React.FC = () => {
     const diagnostics: any = {
       timestamp: new Date().toISOString(),
       currentURL: window.location.href,
-  apiURL: (import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:3001/api",
+  apiURL: (config.API_URL || '').replace(/\/$/, ''),
       environment: {
         NODE_ENV: import.meta?.env?.NODE_ENV,
         MODE: import.meta?.env?.MODE,

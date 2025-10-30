@@ -57,7 +57,7 @@ const Index = () => {
               className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-base sm:text-lg px-8 py-3 flex items-center justify-center space-x-2 shadow"
             >
               <UserPlus className="w-5 h-5" />
-              <span>Solicitar Acesso</span>
+              <span>Solicitar acesso</span>
               <ArrowRight className="w-5 h-5" />
             </Button>
             <Button

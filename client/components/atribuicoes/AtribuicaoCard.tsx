@@ -39,12 +39,13 @@ export function AtribuicaoCard({ atribuicao, onUpdate }: AtribuicaoCardProps) {
     cancelada: 'Cancelada',
   };
   
-  async function handleAtualizarStatus(novoStatus: Atribuicao['status']) {
+  async function handleAtualizarStatus(novoStatus: NonNullable<Atribuicao['status']>) {
     try {
       await atualizarAtribuicao(atribuicao.id, { status: novoStatus });
+      const label = statusLabels[novoStatus] || statusLabels['pendente'];
       toast({
         title: "Status atualizado",
-        description: `Status atualizado para ${statusLabels[novoStatus]}`,
+        description: `Status atualizado para ${label}`,
       });
       onUpdate();
     } catch (error) {
@@ -71,18 +72,20 @@ export function AtribuicaoCard({ atribuicao, onUpdate }: AtribuicaoCardProps) {
     return data.toLocaleDateString('pt-BR');
   };
   
+  const statusKey: NonNullable<Atribuicao['status']> = (atribuicao.status ?? 'pendente') as NonNullable<Atribuicao['status']>;
+
   return (
     <Card className="shadow-md hover:shadow-lg transition-all">
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-xl">{atribuicao.titulo}</CardTitle>
-          <Badge className={statusColors[atribuicao.status]}>
-            {statusLabels[atribuicao.status]}
+          <Badge className={statusColors[statusKey]}>
+            {statusLabels[statusKey]}
           </Badge>
         </div>
         <CardDescription className="flex items-center gap-1 mt-2">
           <CalendarClock className="h-4 w-4" /> 
-          Criado em: {formatarData(atribuicao.data_criacao)}
+          Criado em: {formatarData(atribuicao.data_criacao ?? null)}
         </CardDescription>
       </CardHeader>
       
@@ -104,27 +107,27 @@ export function AtribuicaoCard({ atribuicao, onUpdate }: AtribuicaoCardProps) {
             </div>
           )}
           
-          {atribuicao.data_conclusao && (
+            {atribuicao.data_conclusao && (
             <div className="col-span-2">
               <span className="text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" /> Concluído em:
               </span>
-              <p className="font-medium">{formatarData(atribuicao.data_conclusao)}</p>
+              <p className="font-medium">{formatarData(atribuicao.data_conclusao ?? null)}</p>
             </div>
           )}
         </div>
       </CardContent>
       
       <CardFooter className="flex justify-between">
-        {isBolsista && (
+    {isBolsista && (
           <div className="flex gap-2">
-            {atribuicao.status === 'pendente' && (
+      {statusKey === 'pendente' && (
               <Button variant="outline" size="sm" onClick={() => handleAtualizarStatus('em_andamento')}>
                 <Clock className="mr-1 h-4 w-4" /> Iniciar
               </Button>
             )}
             
-            {atribuicao.status === 'em_andamento' && (
+      {statusKey === 'em_andamento' && (
               <Button variant="outline" size="sm" className="text-green-600" onClick={() => handleAtualizarStatus('concluida')}>
                 <Check className="mr-1 h-4 w-4" /> Concluir
               </Button>

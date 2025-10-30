@@ -1,4 +1,4 @@
-import { getRegistrosEntrada } from '@/services/api';
+import { getRegistrosEntrada, registrarSaidaBolsista } from '@/services/api';
 import { useAppContext } from '../context/AppContext';
 import { User } from '../types';
 import { useEffect, useState } from 'react';
@@ -86,17 +86,24 @@ export default function BolsistaDashboard() {
   // Pegar usuário do JWT
   useEffect(() => {
     const tokenUser = getUsuarioDoToken();
-    if (tokenUser) {
-      // Supondo que exista um endpoint para buscar usuário pelo id
-  fetch(`${config.API_URL.replace(/\/$/, '')}/get_usuario.php?id=${tokenUser.id}`, {
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      })
-        .then(res => res.json())
-        .then(data => setUsuario(data))
-        .catch(() => setUsuario(null));
+    if (!tokenUser) return;
+
+    // Função async interna para buscar o usuário usando await
+    async function buscarUsuario() {
+      try {
+        const res = await fetch(`${config.API_URL.replace(/\/$/, '')}/usuarios/${tokenUser.id}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        const data = await res.json();
+        setUsuario(data.data || data.user || data);
+      } catch (err) {
+        setUsuario(null);
+      }
     }
+
+    buscarUsuario();
   }, []);
 
   // Encerrar atividade
@@ -134,19 +141,10 @@ export default function BolsistaDashboard() {
 
 
     try {
-  const res = await fetch(`${config.API_URL.replace(/\/$/, '')}/encerrar_atividade.php`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (data.success) {
+      // usar serviço para registrar saída
+      const result = await registrarSaidaBolsista(usuario.id, ultimoRegistro.data_entrada);
+      if (result) {
         setMensagem("Atividade encerrada e saída registrada!");
-        // Atualiza o registro local
         setRegistros(prev =>
           prev.map(r =>
             r.id === ultimoRegistro.id ? { ...r, hora_saida } : r
@@ -155,7 +153,7 @@ export default function BolsistaDashboard() {
         setAtividadeIniciada(false);
         setTimeout(() => window.location.href = "/login", 1200);
       } else {
-        setMensagem("Erro: " + (data.message || "Erro desconhecido"));
+        setMensagem("Erro: Não foi possível registrar a saída.");
       }
     } catch (err: any) {
       setMensagem("Erro: " + (err.message || "Erro desconhecido"));
@@ -264,7 +262,7 @@ export default function BolsistaDashboard() {
               <tbody>
                 {registros.map((registro) => (
                   <tr key={registro.id}>
-                    <td style={{ padding: '8px' }}>{new Date(registro.data_entrada).toLocaleDateString()}</td>
+                    <td style={{ padding: '8px' }}>{new Date(registro.data_entrada).toLocaleDateString('pt-BR')}</td>
                     <td style={{ padding: '8px' }}>{registro.hora_entrada}</td>
                     <td style={{ padding: '8px' }}>{registro.hora_saida || '-'}</td>
                   </tr>

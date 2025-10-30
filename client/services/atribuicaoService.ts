@@ -3,16 +3,20 @@ import api from './api';
 
 export interface Atribuicao {
   id: number;
-  responsavel: number;
-  responsavelNome: string;
-  responsavel_nome?: string; // Campo da API
-  bolsistaId: string;
-  bolsistaNome: string;
-  bolsista_nome?: string; // Campo da API
-  dataAtribuicao: string;
-  data_atribuicao?: string; // Campo da API
+  titulo?: string;
+  descricao?: string;
+  bolsista_id?: number | string;
+  bolsista_nome?: string;
+  bolsistaNome?: string;
+  responsavel_id?: number | null;
+  responsavel_nome?: string;
+  responsavelNome?: string;
+  status?: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada';
+  data_criacao?: string;
+  dataAtribuicao?: string;
+  data_conclusao?: string | null;
   observacoes?: string;
-  atividade_nome?: string; // Campo da API
+  atividade_nome?: string;
 }
 
 interface CriarAtribuicaoParams {

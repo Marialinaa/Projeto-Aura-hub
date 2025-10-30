@@ -8,7 +8,11 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`📥 ${new Date().toISOString()} - ${req.method} ${req.url}`);
   console.log('📋 Headers:', req.headers);
-  console.log('📦 Body:', req.body);
+  // tentar logar raw body caso exista
+  if (req.rawBody) {
+    console.log('📦 RawBody (truncated):', req.rawBody.slice(0, 1000));
+  }
+  console.log('📦 Parsed Body:', req.body);
   next();
 });
 

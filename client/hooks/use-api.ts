@@ -13,7 +13,7 @@ export function useApi() {
     parseJSONResponse
   } = useAppContext();
   
-  const API_BASE_URL = config.API_URL || 'http://localhost:3001/api';
+  const API_BASE_URL = (config.API_URL || '').replace(/\/$/, '');
   
   // Função para carregar usuários
   const loadUsers = async () => {

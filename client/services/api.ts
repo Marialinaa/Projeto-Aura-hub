@@ -1,115 +1,86 @@
-import axios from "axios";
-import { Atribuicao } from "./atribuicaoService";
-import { Usuario } from "./usuarioService";
-import config from "../src/config";
+// MOCKS EM DEV
+const isDev = typeof window !== 'undefined' && import.meta.env.DEV;
 
-const API_BASE_URL = (config.API_URL || '').replace(/\/$/, '');
+// Função para simular delay
+function delay(ms = 400) { return new Promise(r => setTimeout(r, ms)); }
 
-// Debug: mostrar qual baseURL está sendo usada (ajuda a diagnosticar chamadas que ignoram o proxy)
-try {
-  if (typeof window !== 'undefined' && import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
-    console.log('[api] API_BASE_URL =', API_BASE_URL);
-  }
-} catch (e) {}
+// Dados mocados
+const mockUser = {
+  id: 1,
+  nome: 'Usuário Teste',
+  email: 'teste@mock.com',
+  tipo_usuario: 'admin',
+  token: 'mock-token-123',
+};
+const mockUsuarios = [
+  { id: 1, nome: 'Administrador Teste', email: 'admin@mock.com', tipo_usuario: 'admin', login: 'admin', senha: 'admin123' },
+  // Responsável com acesso liberado solicitado pelo usuário
+  { id: 10, nome: 'Maria Silva', email: 'maria.lina149@gmail', tipo_usuario: 'responsavel', login: 'Maria.silva110', senha: 'maria123', materia: 'Matemática', funcao: 'coordenadora', acesso_liberado: true },
+  // Bolsista fictício para uso no Android Studio
+  { id: 11, nome: 'Bolsista Android', email: 'bolsista.android@mock.com', tipo_usuario: 'bolsista', login: 'bolsista_android', senha: 'bolsista123' },
+  { id: 2, nome: 'João', email: 'joao@mock.com', tipo_usuario: 'bolsista', login: 'joao', senha: 'joao123' },
+  { id: 3, nome: 'Ana', email: 'ana@mock.com', tipo_usuario: 'responsavel', login: 'ana', senha: 'ana123' },
+];
+const mockAtribuicoes = [
+  { id: 100, titulo: 'Atribuição Android', descricao: 'Atribuição para bolsista Android', bolsista_id: 11, responsavel_id: 10, status: 'pendente' },
+  { id: 101, titulo: 'Atribuição Regular', descricao: 'Descrição regular', bolsista_id: 2, responsavel_id: 3, status: 'em_andamento' },
+];
+const mockAtividades = [
+  { id: 1, titulo: 'Atividade 1', descricao: 'Desc 1', usuario_id: 2 },
+  { id: 2, titulo: 'Atividade 2', descricao: 'Desc 2', usuario_id: 2 },
+];
 
-// Define a URL base da API - usando o helper do projeto
-const API_URL = API_BASE_URL;
-
-// Configuração do cliente axios
-const api = axios.create({
-  baseURL: API_URL,
-});
-
-// Interceptor para adicionar token de autenticação a todas as requisições
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers["Authorization"] = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Interceptor para lidar com erros de resposta
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("Erro na requisição API:", error);
-
-    if (error.response) {
-      console.error("Detalhes da resposta:", {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers,
-      });
-    } else if (error.request) {
-      console.error("Nenhuma resposta recebida:", error.request);
+// Definição global de fetchApi
+async function fetchApi<T>(endpoint: string, method: "GET" | "POST" | "PUT" | "DELETE" = "GET", data?: any): Promise<T> {
+  if (isDev) {
+    await delay();
+    // Mocks principais
+    if (endpoint === 'auth/login' && method === 'POST') {
+      // Procura usuário pelos campos de login
+      const found = mockUsuarios.find(u => u.login && data?.login && u.login === data.login && u.senha && data?.senha && u.senha === data.senha);
+      if (!found) return { success: false, message: 'Credenciais inválidas' } as any;
+      // Se for responsável e o acesso não estiver liberado
+      if (found.tipo_usuario === 'responsavel' && found.acesso_liberado === false) {
+        return { success: false, message: 'Acesso do responsável não liberado' } as any;
+      }
+      // Retorna token e usuário (sem senha)
+  const { senha, ...usuarioSemSenha } = found as any;
+  return { success: true, data: { token: mockUser.token, usuario: usuarioSemSenha } } as any;
     }
-
-    return Promise.reject(error);
+    if (endpoint === 'usuarios') {
+      return { success: true, data: mockUsuarios } as any;
+    }
+    if (endpoint.startsWith('atribuicoes')) {
+      return { success: true, data: mockAtribuicoes } as any;
+    }
+    if (endpoint.startsWith('atividades')) {
+      return { success: true, data: mockAtividades } as any;
+    }
+    // Adicione outros mocks conforme necessário
+    return { success: true, data: [] } as any;
   }
-);
-
-// ---------------------------
-// Serviços
-// ---------------------------
-
-// Serviço de notificações
-export const notificationService = {
-  listar: () => api.get("/notifications"),
-  marcarComoLida: (id: number) => api.post("/notifications/read", { id }),
-  marcarTodasComoLidas: () => api.post("/notifications/read-all"),
-  excluir: (id: number) => api.delete(`/notifications/${id}`),
-};
-
-// Serviço de configurações
-export const settingsService = {
-  buscar: () => api.get("/settings"),
-  atualizar: (settings: any) => api.put("/settings", { settings }),
-  exportarDados: () => api.get("/export-data"),
-};
-
-// Serviço de usuário logado
-export const userService = {
-  perfil: () => api.get("/me"),
-  atualizarPerfil: (dados: any) => api.put("/me", dados),
-  alterarSenha: (senhas: any) => api.put("/me/password", senhas),
-};
-
-// Função genérica para fazer requisições
-async function fetchApi<T>(
-  endpoint: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-  data?: any
-): Promise<T> {
+  // ...código real abaixo...
   const token = localStorage.getItem("token");
-
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
-
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-
   const options: RequestInit = {
     method,
     headers,
     credentials: "include",
   };
-
   if (data) {
     options.body = JSON.stringify(data);
   }
-
   try {
-  const response = await fetch(`${API_BASE_URL}/${endpoint}`, options);
+    const response = await fetch(`${API_BASE_URL}/${endpoint}`, options);
     const responseData = await response.json();
-
     if (!response.ok || !responseData.success) {
       throw new Error(responseData.message || "Erro ao processar requisição");
     }
-
     return responseData.data;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -118,28 +89,46 @@ async function fetchApi<T>(
   }
 }
 
+import { Atribuicao } from "./atribuicaoService";
+import { Usuario } from "./usuarioService";
+import config from "../src/config";
+
+const API_BASE_URL = config.API_URL || "http://localhost:3001/api";
+
+
+
+// Serviços convertidos para usar fetchApi (mock em DEV)
+export const notificationService = {
+  listar: () => fetchApi('notifications'),
+  marcarComoLida: (id: number) => fetchApi('notifications/read', 'POST', { id }),
+  marcarTodasComoLidas: () => fetchApi('notifications/read-all', 'POST'),
+  excluir: (id: number) => fetchApi(`notifications/${id}`, 'DELETE'),
+};
+
+export const settingsService = {
+  buscar: () => fetchApi('settings'),
+  atualizar: (settings: any) => fetchApi('settings', 'PUT', { settings }),
+  exportarDados: () => fetchApi('export-data'),
+};
+
+export const userService = {
+  perfil: () => fetchApi('me'),
+  atualizarPerfil: (dados: any) => fetchApi('me', 'PUT', dados),
+  alterarSenha: (senhas: any) => fetchApi('me/password', 'PUT', senhas),
+};
+
+
 // Auth
 export async function login(credentials: { login: string; senha: string }) {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(credentials),
-  });
-
-  const data = await response.json();
-
-  if (data.success || data?.data) {
-    // compatibilidade com diferentes formatos
-    const token = data.data?.token || data.token;
-    const usuario = data.data?.usuario || data.usuario;
+  const resp = await fetchApi<{ success: boolean; data?: { token: string; usuario: any }; message?: string }>('auth/login', 'POST', credentials);
+  if (resp.success && resp.data) {
+    const token = resp.data.token;
+    const usuario = resp.data.usuario;
     if (token) localStorage.setItem("token", token);
     if (usuario) localStorage.setItem("usuario", JSON.stringify(usuario));
-    return data;
+    return resp;
   } else {
-    console.error("Erro no login:", data.message || data.error);
-    throw new Error(data.message || data.error || 'Erro no login');
+    throw new Error(resp.message || 'Erro no login');
   }
 }
 
@@ -151,71 +140,27 @@ export function logout() {
 
 // Atribuições
 export async function listarAtribuicoes(filtros?: Record<string, string>) {
-  let endpoint = "atribuicoes";
-
-  if (filtros && Object.keys(filtros).length > 0) {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(filtros)) {
-      params.append(key, value);
-    }
-    endpoint += `?${params.toString()}`;
-  }
-
-  return fetchApi<Atribuicao[]>(endpoint);
+  return fetchApi('atribuicoes', 'GET', filtros);
 }
 
-export async function criarAtribuicao(
-  atribuicao: Omit<
-    Atribuicao,
-    "id" | "data_criacao" | "data_atualizacao" | "data_conclusao"
-  >
-) {
-  return fetchApi<Atribuicao>("atribuicoes", "POST", atribuicao);
-}
 
-export async function atualizarAtribuicao(id: number, dados: Partial<Atribuicao>) {
-  return fetchApi<Atribuicao>(`atribuicoes/${id}`, "PUT", { id, ...dados });
-}
-
-export async function excluirAtribuicao(id: number) {
-  return fetchApi<void>(`atribuicoes/${id}`, "DELETE");
-}
-
-// Usuários
-export async function listarUsuarios(tipo?: string) {
-  let endpoint = `usuarios`;
-  if (tipo) {
-    endpoint += `?tipo=${tipo}`;
-  }
-  return fetchApi<Usuario[]>(endpoint);
-}
-
-// Registros de entrada
-export async function listarRegistrosEntrada(bolsistaId?: number | "all") {
+export async function getRegistrosEntrada(bolsistaId: number | null = null) {
   if (!bolsistaId) return fetchApi('horarios');
-  const endpoint = `horarios/bolsista/${bolsistaId}`;
-  return fetchApi(endpoint);
+  return fetchApi(`horarios/bolsista/${bolsistaId}`);
 }
 
-// Registrar saída do bolsista
 export async function registrarSaidaBolsista(bolsistaId: number, data_registro?: string) {
   const payload: any = {
     bolsista_id: bolsistaId,
-  hora_saida: new Date().toLocaleTimeString('pt-BR', { hour12: false }),
+    hora_saida: new Date().toLocaleTimeString('pt-BR', { hour12: false }),
+    data_registro: data_registro || new Date().toISOString().slice(0, 10)
   };
-  if (data_registro) {
-    payload.data_registro = data_registro;
-  } else {
-    payload.data_registro = new Date().toISOString().slice(0, 10);
-  }
   return fetchApi('horarios/saida', 'POST', payload);
 }
 
-// Helper para obter o usuário atual
 export function getUsuarioAtual() {
   const usuarioString = localStorage.getItem("usuario");
   if (!usuarioString) return null;
-
   try {
     return JSON.parse(usuarioString);
   } catch (e) {
@@ -223,31 +168,8 @@ export function getUsuarioAtual() {
   }
 }
 
-// Helper para verificar se o usuário está autenticado
 export function isAutenticado() {
   return !!localStorage.getItem("token");
 }
 
-// Novas funções adicionadas
-export async function getRegistrosEntrada(bolsistaId = null) {
-  if (!bolsistaId) return fetchApi('horarios');
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/horarios/bolsista/${bolsistaId}`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-  });
-
-  const data = await response.json();
-
-  if (!data.success) {
-    throw new Error(data.message || 'Erro ao obter registros');
-  }
-
-  return data.data;
-}
-
-export default api;
-
-// Re-export types for older imports that expect them from '@/services/api'
 export type { Atribuicao, Usuario };

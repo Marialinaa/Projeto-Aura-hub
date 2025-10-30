@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, Dispatch, SetStateAction } from 'react';
 import config from '../src/config';
+import { getUsuarioAtual } from '../services/api';
 import { User, Atribuicao, AppContext as IAppContext } from '../types';
 
 export interface AppContextType extends IAppContext {
@@ -43,17 +44,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     async function carregarUsuario() {
       try {
         setIsLoading(true);
-  const res = await fetch(`${config.API_URL.replace(/\/$/, '')}/api_usuario_logado.php`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await res.json();
-        if (data.success && data.user) {
-          setUsers([data.user]);
-          setUserId(data.user.id ?? null);
+        // Primeiro, tentar obter usuário armazenado localmente (após login)
+        const localUser = getUsuarioAtual();
+        if (localUser) {
+          setUsers([localUser]);
+          setUserId(localUser.id ?? null);
           setIsUserLoaded(true);
-        } else {
-          setMessage('Não foi possível carregar usuário.');
+          return;
         }
+
+        // Fallback: tentar obter pelo token (se o token contém id no payload)
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const parts = token.split('.');
+            if (parts.length >= 2) {
+              const payload = JSON.parse(atob(parts[1]));
+              const id = payload.sub || payload.user_id || payload.userId || payload.userId;
+              if (id) {
+                const res = await fetch(`${config.API_URL.replace(/\/$/, '')}/usuarios/${id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data && (data.success || data.data)) {
+                  const u = data.data || data.user || data;
+                  setUsers([u]);
+                  setUserId(u.id ?? null);
+                  setIsUserLoaded(true);
+                  return;
+                }
+              }
+            }
+          } catch (err) {
+            // se falhar, segue para mostrar mensagem de erro
+          }
+        }
+
+        setMessage('Não foi possível carregar usuário.');
       } catch (err) {
         console.error('Erro ao carregar usuário:', err);
         setMessage('Erro ao carregar usuário.');

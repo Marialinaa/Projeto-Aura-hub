@@ -175,8 +175,8 @@ const SignUp: React.FC = () => {
         // Erro de rede/conexão
         setMessage(
           "⚠️ Erro de conexão com o servidor. Verifique:\n" +
-           "• Se o servidor backend Node está rodando (ex: " + (config && config.API_URL ? config.API_URL : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api/')) + ")\n" +
-            "• Se o arquivo api_usuarios.php existe\n" +
+           "• Se o servidor backend Node está rodando (ex: " + ((config && config.API_URL) ? (config.API_URL as string) : (import.meta.env.VITE_API_URL || 'NÃO CONFIGURADA')) + ")\n" +
+            "• Se o endpoint /api/usuarios está acessível\n" +
             "• Se não há bloqueio de CORS",
         );
       } else {
@@ -553,10 +553,11 @@ const SignUp: React.FC = () => {
                 </Button>
                 <Button
                   type="submit"
+                  size="default"
                   className="flex-1 h-14 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Enviando..." : "Solicitar Acesso"}
+                  {isLoading ? "Enviando..." : "Solicitar acesso"}
                 </Button>
               </div>
             </form>

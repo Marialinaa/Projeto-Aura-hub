@@ -1,15 +1,35 @@
 /* formal-theme.css - Tema formal para Aura Hubb */
 
 :root {
-  --color-bg: #f3f4f6;
-  --color-card: #fff;
-  --color-primary: #0a2540;
+  /* Paleta suave (tons pastéis / alto contraste legível em mobile) */
+  --primary: 242 85% 57%; /* hsl fallback for purple-ish */
+  --primary-foreground: 255 255% 100%;
+  --secondary: 217 89% 55%; /* azul suave */
+  --secondary-foreground: 255 255% 100%;
+  --accent: 142 47% 43%; /* verde suave */
+  --accent-foreground: 255 255% 100%;
+
+  --background: 210 28% 98%; /* very light */
+  --foreground: 220 13% 12%;
+  --muted: 220 8% 56%;
+  --border: 210 16% 90%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 13% 12%;
+
+  /* sidebar tokens kept for compatibility */
+  --sidebar-background: 218 16% 16%;
+  --sidebar-foreground: 0 0% 100%;
+
+  /* Legacy variables for formal-theme styles */
+  --color-bg: #f7fafc;
+  --color-card: #ffffff;
+  --color-primary: #4F46E5;
   --color-secondary: #2563eb;
   --color-accent: #22c55e;
-  --color-text: #222;
+  --color-text: #0f172a;
   --color-muted: #6b7280;
-  --color-border: #d1d5db;
-  --color-black: #111;
+  --color-border: #e6e6f0;
+  --color-black: #0b1220;
   --color-green: #22c55e;
 }
 
@@ -26,14 +46,14 @@ body {
   border-radius: 1rem;
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
   border: 1px solid var(--color-border);
-  padding: 1.5rem;
+  padding: 1.25rem; /* mobile-first slightly smaller */
 }
 
 .button, .Button {
   border-radius: 0.5rem;
   font-weight: 600;
   transition: background 0.2s, color 0.2s;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
   border: none;
   cursor: pointer;
 }
@@ -87,12 +107,13 @@ body {
 /* Responsividade */
 @media (max-width: 600px) {
   .card, .Card {
-    padding: 1rem;
-    border-radius: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
   }
   .button, .Button {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  width: 100%;
   }
   .input, .Input {
     padding: 0.5rem 0.75rem;

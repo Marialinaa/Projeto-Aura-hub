@@ -107,7 +107,7 @@ export default function Admin() {
     instituicao: ""
   });
   // Base URL para API Node (consistente com server/routes index.ts)
-  const baseApi = (config.API_URL || 'http://localhost:3001/api').replace(/\/$/, '');
+  const baseApi = (config.API_URL || '').replace(/\/$/, '');
   const [novaAtribuicao, setNovaAtribuicao] = useState({
     titulo: "",
     descricao: ""

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
+import {
   Button,
-  Card, 
-  CardContent, 
-  CardHeader, 
+  Card,
+  CardContent,
+  CardHeader,
   CardTitle,
   Label,
   Select,
@@ -12,29 +12,29 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Input
+  Input,
 } from "@/components/ui";
-import { 
+import {
   BarChart3,
   Calendar,
   Home,
   LogOut,
-  UserCheck
-} from 'lucide-react';
-import { 
-  BarChart, 
-  CartesianGrid, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
+  UserCheck,
+} from "lucide-react";
+import {
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
   Bar,
-  ResponsiveContainer 
-} from 'recharts';
+  ResponsiveContainer,
+} from "recharts";
 
 import "../formal-theme.css";
 import config from "../src/config";
-const API_URL = config.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = (config.API_URL || '').replace(/\/$/, '');
 
 interface Bolsista {
   id: string;
@@ -226,19 +226,40 @@ export default function ResponsavelDashboard() {
           {/* Gráfico */}
           <Card>
             <CardHeader>
-              <CardTitle>Horas por Dia</CardTitle>
+              <CardTitle>Horas registradas por dia</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-96">
                 {dadosGrafico.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={dadosGrafico}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="data" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="horas" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e6e6f0" />
+                      <XAxis
+                        dataKey="data"
+                        tickFormatter={(value) => {
+                          try {
+                            return new Date(value).toLocaleDateString('pt-BR');
+                          } catch (e) {
+                            return String(value);
+                          }
+                        }}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis tickFormatter={(value) => `${Number(value).toFixed(1)}h`} tick={{ fontSize: 12 }} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 8, border: 'none', background: '#ffffff' }}
+                        itemStyle={{ color: '#1f2937' }}
+                        formatter={(value: any) => [`${Number(value).toFixed(2)} horas`, 'Horas']}
+                        labelFormatter={(label: any) => {
+                          try {
+                            return new Date(label).toLocaleDateString('pt-BR');
+                          } catch (e) {
+                            return String(label);
+                          }
+                        }}
+                      />
+                      <Legend formatter={() => 'Horas'} />
+                      <Bar dataKey="horas" fill="#4F46E5" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (

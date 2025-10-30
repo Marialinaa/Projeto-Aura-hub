@@ -1,15 +1,18 @@
 import axios from "axios";
+import config from "../src/config";
 
-const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = (config.API_URL || '').replace(/\/$/, '');
 
 interface Usuario {
-  id: string;
-  nome: string;
-  email: string;
-  login: string;
-  tipoUsuario: string;
-  status: string;
-  dataCriacao: string;
+  id: string | number;
+  nome?: string;
+  nome_completo?: string;
+  email?: string;
+  login?: string;
+  tipo_usuario?: string; // "bolsista" | "responsavel" | "admin"
+  tipoUsuario?: string;
+  status?: string;
+  dataCriacao?: string;
   dataAprovacao?: string;
   funcao?: string;
   matricula?: string;

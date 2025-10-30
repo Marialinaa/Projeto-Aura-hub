@@ -1,35 +1,25 @@
-import axios from "axios";
-import config from "../src/config";
-
-const API_URL = `${config.API_URL.replace(/\/$/, '')}/api_atividades.php`;
+import api from './api';
 
 export const listarAtividades = async (usuario_id?: number) => {
-  const params = usuario_id ? `?rota=listar&usuario_id=${usuario_id}` : "?rota=listar";
-  const res = await axios.get(`${API_URL}${params}`);
-  return res.data;
+  const params: any = {};
+  if (usuario_id) params.usuario_id = usuario_id;
+  const res = await api.get('/atividades', { params });
+  return res.data?.data ?? res.data;
 };
 
-export const criarAtividade = async (atividade: { 
-  titulo: string; 
-  descricao: string; 
-  usuario_id: number 
-}) => {
-  const res = await axios.post(`${API_URL}?rota=criar`, atividade);
-  return res.data;
+export const criarAtividade = async (atividade: { titulo: string; descricao: string; usuario_id: number }) => {
+  const res = await api.post('/atividades', atividade);
+  return res.data?.data ?? res.data;
 };
 
-export const atualizarAtividade = async (atividade: { 
-  id: number; 
-  titulo: string; 
-  descricao: string 
-}) => {
-  const res = await axios.post(`${API_URL}?rota=atualizar`, atividade);
-  return res.data;
+export const atualizarAtividade = async (atividade: { id: number; titulo: string; descricao: string }) => {
+  const res = await api.put(`/atividades/${atividade.id}`, atividade);
+  return res.data?.data ?? res.data;
 };
 
 export const excluirAtividade = async (id: number) => {
-  const res = await axios.post(`${API_URL}?rota=excluir`, { id });
-  return res.data;
+  const res = await api.delete(`/atividades/${id}`);
+  return res.data?.data ?? res.data;
 };
 
 export default {

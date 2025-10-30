@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import config from '../src/config';
 
 const TesteComponents = () => {
   const [resultados, setResultados] = useState<string[]>([]);
@@ -13,7 +14,7 @@ const TesteComponents = () => {
     adicionarResultado('🔄 Iniciando teste da API...');
     
     try {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+  const API_URL = (config.API_URL || '').replace(/\/$/, '');
       adicionarResultado(`📡 Tentando conectar com: ${API_URL}/usuarios/test`);
       
       // Primeiro, testar com dados mock para verificar se o parse funciona
