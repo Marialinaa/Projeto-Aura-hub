@@ -86,10 +86,12 @@ export default function BolsistaDashboard() {
   // Pegar usuário do JWT
   useEffect(() => {
     const tokenUser = getUsuarioDoToken();
-    if (!tokenUser) return;
+    if (!tokenUser || !tokenUser.id) return;
 
     // Função async interna para buscar o usuário usando await
     async function buscarUsuario() {
+      if (!tokenUser || !tokenUser.id) return;
+      
       try {
         const res = await fetch(`${config.API_URL.replace(/\/$/, '')}/usuarios/${tokenUser.id}`, {
           headers: {

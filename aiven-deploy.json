@@ -1,0 +1,27 @@
+{
+  "NODE_ENV": "production",
+  "PORT": 3001,
+
+  "DB_HOST": "mysql-198f52f6-maria-687f.b.aivencloud.com",
+  "DB_PORT": 28405,
+  "DB_USER": "maria_compat",
+  "DB_PASSWORD": "AVNS_OhayJfBtjN_r1PIaMFZ",
+  "DB_NAME": "defaultdb",
+  "DB_CONNECTION_LIMIT": 10,
+  "DB_CONNECT_TIMEOUT": 30000,
+
+  "DATABASE_URL": "mysql://maria_compat:AVNS_OhayJfBtjN_r1PIaMFZ@mysql-198f52f6-maria-687f.b.aivencloud.com:28405/defaultdb",
+
+  "JWT_SECRET": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30",
+
+  "CORS_ORIGIN": "https://aura-hubb.netlify.app,http://localhost:5173",
+
+  "EMAIL_HOST": "smtp.gmail.com",
+  "EMAIL_PORT": 587,
+  "EMAIL_SECURE": false,
+  "EMAIL_USER": "mariaxxlina@gmail.com",
+  "EMAIL_PASSWORD": "ljve epka bsqv axkc",
+  "EMAIL_FROM": "mariaxxlina@gmail.com",
+
+  "LOG_LEVEL": "info"
+}

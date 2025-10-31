@@ -1,164 +1,175 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import morgan from "morgan";
-import helmet from "helmet";
-import routes from "./routes";
-import { testDatabaseConnection } from "./config/database";
-import { verificarConfiguracao } from "./config/email";
+// ============================================
+// SERVER ENTRY POINT - VERSÃO CLOUD PRODUCTION
+// ============================================
+
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import routes from './routes';
+import { errorHandler } from './utils/errorHandler';
 
 // Carregar variáveis de ambiente
 dotenv.config();
 
-// Criar aplicação Express
 const app = express();
 const PORT = process.env.PORT || 3001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const isProd = NODE_ENV === 'production';
 
-// Middleware de segurança
-app.use(helmet());
+// ============================================
+// 🔒 MIDDLEWARES GLOBAIS
+// ============================================
 
-// Configurar CORS
-// Suporta CORS_ORIGIN como lista separada por vírgulas e adiciona localhost em dev
-const rawCors = process.env.CORS_ORIGIN || "";
-const allowedOrigins = rawCors
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
+// Segurança HTTP
+app.use(helmet({
+  contentSecurityPolicy: isProd, // CSP só em produção
+  crossOriginEmbedderPolicy: false,
+}));
 
-if (process.env.NODE_ENV !== 'production') {
-  // permitir Vite dev server em desenvolvimento
-  allowedOrigins.push('http://localhost:5173');
-  allowedOrigins.push('http://127.0.0.1:5173');
-}
+// Configuração de CORS dinâmica
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://aura-hub.vercel.app',
+    ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // requests sem origin (curl, server-side) devem ser permitidos
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      // fallback: se CORS_ORIGIN foi vazio, permitir tudo (cautela)
-      if (!rawCors) return callback(null, true);
-      return callback(new Error('CORS not allowed'), false);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
-
-// Logging de requisições
-app.use(morgan("dev"));
-
-// Parser para JSON (captura rawBody para debug e possível reparo)
-app.use(
-  express.json({
-    verify: (req: any, _res, buf: Buffer) => {
-      try {
-        req.rawBody = buf.toString();
-      } catch (e) {
-        req.rawBody = undefined;
-      }
-    },
-  })
-);
-
-// Parser para dados de formulário
-app.use(express.urlencoded({ extended: true }));
-
-// Middleware resiliente para detectar e reparar JSON duplamente-serializado
-app.use((req: any, res, next) => {
-  try {
-    const ct = (req.headers['content-type'] || '').toString();
-    if (ct.includes('application/json')) {
-      // Se o body chegou como string, tentar parse
-      if (typeof req.body === 'string') {
-        try {
-          req.body = JSON.parse(req.body);
-        } catch (err) {
-          // tentar reparar sequências de escape extras (ex: \")
-          const raw = req.rawBody || req.body;
-          if (typeof raw === 'string') {
-            const cleaned = raw.replace(/\\+/g, '\\');
-            try {
-              req.body = JSON.parse(cleaned);
-              console.log('🧹 Repaired double-encoded JSON body (cleaned)');
-            } catch (err2) {
-              console.warn('⚠️ Failed to parse JSON body after cleaning. rawBody (truncated)=', (raw || '').slice(0, 400));
-            }
-          }
-        }
-      }
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || !isProd) {
+      callback(null, true);
+    } else {
+      console.warn(`🚫 CORS bloqueado para origem: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     }
-  } catch (e) {
-    console.error('Error in JSON repair middleware:', e);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Logging
+app.use(morgan(isProd ? 'combined' : 'dev'));
+
+// Parsing de body
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ============================================
+// ✅ HEALTH CHECK E INFO
+// ============================================
+
+app.get('/health', async (req: Request, res: Response) => {
+  try {
+    const { checkHealth } = require('./utils/db');
+    const dbHealth = await checkHealth();
+
+    res.json({
+      status: 'ok',
+      environment: NODE_ENV,
+      timestamp: new Date().toISOString(),
+      database: dbHealth,
+      uptime: process.uptime(),
+    });
+  } catch (error: any) {
+    res.status(503).json({
+      status: 'error',
+      message: error.message,
+      database: { healthy: false },
+    });
   }
-  next();
 });
 
-// Rota de teste
-app.get("/api/health", (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
-    status: "ok",
-    message: "API funcionando normalmente",
-    timestamp: new Date().toISOString(),
+    name: 'Aura-Hub API',
+    version: '1.0.0',
+    status: 'running',
+    environment: NODE_ENV,
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      docs: '/api/docs',
+    },
   });
 });
 
-// Usar rotas da API
-app.use("/api", routes);
+// ============================================
+// 🌐 ROTAS DA API
+// ============================================
 
-// Rota de fallback
-app.use("*", (req, res) => {
+app.use('/api', routes);
+
+// ============================================
+// ⚠️ TRATAMENTO DE ERROS
+// ============================================
+
+// 404
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
-    message: "Rota não encontrada",
+    message: 'Endpoint não encontrado',
+    path: req.path,
+    method: req.method,
   });
 });
 
-// Iniciar servidor
-const startServer = async () => {
-  // Retry configurável para conexões ao DB (útil em cloud / provisionamento lento)
-  const maxRetries = Number(process.env.DB_CONNECT_RETRIES || 5);
-  const retryDelayMs = Number(process.env.DB_CONNECT_RETRY_DELAY_MS || 3000);
+// Handler global de erros
+app.use(errorHandler);
 
-  let attempt = 0;
-  while (attempt <= maxRetries) {
-    try {
-      attempt++;
-      console.log(`🧪 Testando conexão com o banco (tentativa ${attempt}/${maxRetries})`);
-      await testDatabaseConnection();
-      // Verificar configuração de email
-      await verificarConfiguracao();
+// ============================================
+// 🚀 START SERVER
+// ============================================
 
-      // Iniciar servidor Express
-      const HOST = "0.0.0.0"; // aceita conexões de qualquer lugar
-      const PORT_NUM = Number(PORT) || 3001;
+async function startServer() {
+  try {
+    console.log('⏳ Aguardando conexão com banco de dados...');
+    const { checkHealth } = require('./utils/db');
+    const dbHealth = await checkHealth();
 
-      app.listen(PORT_NUM, HOST, () => {
-        console.log("=======================================================");
-        console.log(`🚀 Servidor rodando na porta ${PORT_NUM}`);
-        console.log(`📝 Localhost:     http://localhost:${PORT_NUM}/api/health`);
-        console.log(`📝 Emulador AVD:  http://10.0.2.2:${PORT_NUM}/api/health`);
-        console.log(`📝 Rede Local:    http://192.168.x.x:${PORT_NUM}/api/health`);
-        console.log("=======================================================");
-      });
-
-      // sucesso: sair do loop
-      return;
-    } catch (error) {
-      console.error(`❌ Falha ao conectar (tentativa ${attempt}):`, error && (error as any).message ? (error as any).message : error);
-      if (attempt > maxRetries) {
-        console.error('🔚 Número máximo de tentativas atingido. Saindo.');
-        process.exit(1);
-      }
-      console.log(`⏳ Aguardando ${retryDelayMs}ms antes da próxima tentativa...`);
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, retryDelayMs));
+    if (!dbHealth.healthy) {
+      throw new Error(`Database não está saudável: ${dbHealth.message}`);
     }
+
+    console.log('✅ Banco de dados conectado!');
+
+    app.listen(PORT, () => {
+      console.log('\n================================');
+      console.log(`🚀 AURA-HUB API - ${NODE_ENV.toUpperCase()}`);
+      console.log('================================');
+      console.log(`� Servidor ativo na porta: ${PORT}`);
+      console.log(`🌍 Ambiente: ${NODE_ENV}`);
+      console.log(`�️  Database: Conectado`);
+      console.log(`� Iniciado em: ${new Date().toLocaleString('pt-BR')}`);
+      console.log('================================\n');
+    });
+
+  } catch (error: any) {
+    console.error('💥 Erro ao iniciar servidor:', error.message);
+    console.error(error.stack);
+    process.exit(1);
   }
+}
+
+// ============================================
+// 🧹 SHUTDOWN GRACEFUL
+// ============================================
+
+const shutdown = async (signal: string) => {
+  console.log(`⚠️  ${signal} recebido, encerrando servidor...`);
+  const { closePool } = require('./utils/db');
+  await closePool();
+  console.log('👋 Servidor encerrado com segurança.');
+  process.exit(0);
 };
 
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Iniciar servidor
 startServer();
 
-// Exportar a factory do app para reutilização (ex: node-build.ts)
-export const createServer = () => app;
+export default app;

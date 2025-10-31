@@ -139,17 +139,35 @@ export function logout() {
 }
 
 // Atribuições
-export async function listarAtribuicoes(filtros?: Record<string, string>) {
-  return fetchApi('atribuicoes', 'GET', filtros);
+export async function listarAtribuicoes(filtros?: Record<string, string>): Promise<Atribuicao[]> {
+  return fetchApi<Atribuicao[]>('atribuicoes', 'GET', filtros);
+}
+
+export async function criarAtribuicao(atribuicao: Partial<Atribuicao>): Promise<Atribuicao> {
+  return fetchApi<Atribuicao>('atribuicoes', 'POST', atribuicao);
+}
+
+export async function atualizarAtribuicao(id: number, atribuicao: Partial<Atribuicao>): Promise<Atribuicao> {
+  return fetchApi<Atribuicao>(`atribuicoes/${id}`, 'PUT', atribuicao);
+}
+
+export async function excluirAtribuicao(id: number): Promise<void> {
+  return fetchApi<void>(`atribuicoes/${id}`, 'DELETE');
+}
+
+// Usuários
+export async function listarUsuarios(filtros?: Record<string, string>): Promise<Usuario[]> {
+  return fetchApi<Usuario[]>('usuarios', 'GET', filtros);
 }
 
 
-export async function getRegistrosEntrada(bolsistaId: number | null = null) {
-  if (!bolsistaId) return fetchApi('horarios');
-  return fetchApi(`horarios/bolsista/${bolsistaId}`);
+
+export async function getRegistrosEntrada(bolsistaId: number | null = null): Promise<any[]> {
+  if (!bolsistaId) return fetchApi<any[]>('horarios');
+  return fetchApi<any[]>(`horarios/bolsista/${bolsistaId}`);
 }
 
-export async function registrarSaidaBolsista(bolsistaId: number, data_registro?: string) {
+export async function registrarSaidaBolsista(bolsistaId: number, data_registro?: string): Promise<any> {
   const payload: any = {
     bolsista_id: bolsistaId,
     hora_saida: new Date().toLocaleTimeString('pt-BR', { hour12: false }),
@@ -173,3 +191,38 @@ export function isAutenticado() {
 }
 
 export type { Atribuicao, Usuario };
+
+// Default export para compatibilidade com imports antigos
+export default {
+  get: async <T = any>(url: string, config?: any): Promise<{ data: T }> => {
+    const data = await fetchApi<T>(url.replace(/^\//, ''), 'GET', config?.params);
+    return { data };
+  },
+  post: async <T = any>(url: string, payload?: any): Promise<{ data: T }> => {
+    const data = await fetchApi<T>(url.replace(/^\//, ''), 'POST', payload);
+    return { data };
+  },
+  put: async <T = any>(url: string, payload?: any): Promise<{ data: T }> => {
+    const data = await fetchApi<T>(url.replace(/^\//, ''), 'PUT', payload);
+    return { data };
+  },
+  delete: async <T = any>(url: string): Promise<{ data: T }> => {
+    const data = await fetchApi<T>(url.replace(/^\//, ''), 'DELETE');
+    return { data };
+  },
+  login,
+  logout,
+  listarAtribuicoes,
+  criarAtribuicao,
+  atualizarAtribuicao,
+  excluirAtribuicao,
+  listarUsuarios,
+  getRegistrosEntrada,
+  registrarSaidaBolsista,
+  getUsuarioAtual,
+  isAutenticado,
+  notificationService,
+  settingsService,
+  userService,
+};
+

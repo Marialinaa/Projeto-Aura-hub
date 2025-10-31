@@ -25,8 +25,8 @@ export function NovaAtribuicaoForm({ onSuccess, onCancel }: NovaAtribuicaoFormPr
   useEffect(() => {
     async function carregarUsuarios() {
       try {
-        const bolsistasData = await listarUsuarios('bolsista');
-        const responsaveisData = await listarUsuarios('responsavel');
+        const bolsistasData = await listarUsuarios({ tipo_usuario: 'bolsista' });
+        const responsaveisData = await listarUsuarios({ tipo_usuario: 'responsavel' });
         
         setBolsistas(bolsistasData);
         setResponsaveis(responsaveisData);
