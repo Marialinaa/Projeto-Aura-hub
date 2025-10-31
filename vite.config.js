@@ -15,9 +15,12 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        // Usa variável de ambiente ou localhost como fallback
+        target: process.env.VITE_API_LOCAL || 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: false,
+        // Mantém '/api' no path (não reescreve)
+        // porque o backend espera '/api/...' nas rotas
       },
     },
   },

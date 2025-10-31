@@ -26,7 +26,7 @@ function handleDatabaseError(error: any, res: Response) {
 // ============================================
 // EXEMPLO DE FUNÇÃO MIGRADA
 // ============================================
-export const exemploFuncao = async (req: Request, res: Response) => {
+export const exemploFuncao = async (_req: Request, res: Response) => {
   try {
     // ✅ Obter pool de forma segura
     const pool = await DatabaseConnection.getInstance();

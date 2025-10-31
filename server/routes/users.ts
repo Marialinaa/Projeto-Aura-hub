@@ -21,7 +21,7 @@ function handleDatabaseError(error: any, res: any) {
 }
 
 // GET /api/users - List all users from separate tables
-export const handleListUsers: RequestHandler = async (req, res) => {
+export const handleListUsers: RequestHandler = async (_req, res) => {
   try {
     console.log("🔍 Buscando usuários das tabelas separadas...");
 
