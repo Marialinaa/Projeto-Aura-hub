@@ -1,0 +1,27 @@
+{
+  "NODE_ENV": "production",
+  "PORT": 3001,
+
+  "DB_HOST": "your-database-host",
+  "DB_PORT": 28405,
+  "DB_USER": "your-database-user",
+  "DB_PASSWORD": "your-database-password",
+  "DB_NAME": "your-database-name",
+  "DB_CONNECTION_LIMIT": 10,
+  "DB_CONNECT_TIMEOUT": 30000,
+
+  "DATABASE_URL": "mysql://user:password@host:port/database",
+
+  "JWT_SECRET": "your-jwt-secret-key",
+
+  "CORS_ORIGIN": "https://your-app.netlify.app,http://localhost:5173",
+
+  "EMAIL_HOST": "smtp.gmail.com",
+  "EMAIL_PORT": 587,
+  "EMAIL_SECURE": false,
+  "EMAIL_USER": "your-email@gmail.com",
+  "EMAIL_PASSWORD": "your-app-password",
+  "EMAIL_FROM": "your-email@gmail.com",
+
+  "LOG_LEVEL": "info"
+}

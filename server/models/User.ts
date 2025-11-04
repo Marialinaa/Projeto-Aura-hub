@@ -119,7 +119,7 @@ const UserModel = {
       // ✅ Obter pool de forma segura
       const pool = await DatabaseConnection.getInstance();
 
-      const fields = ['nome_completo','email','login','senha_hash','tipo_usuario','status'];
+      const fields = ['nome_completo','email','login','senha_hash','tipo_usuario'];
       const values = fields.map(f => (data as any)[f] ?? null);
       const placeholders = fields.map(() => '?').join(',');
       const sql = `INSERT INTO usuarios (${fields.join(',')}) VALUES (${placeholders})`;
