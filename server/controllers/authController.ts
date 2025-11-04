@@ -145,7 +145,7 @@ export async function register(req: Request, res: Response) {
 
     // Verificar se já há solicitação pendente
     const [existingSolicitacao]: any = await pool.execute(
-      'SELECT id FROM solicitacoes WHERE email = ? OR login = ? AND status = "pendente" LIMIT 1',
+      'SELECT id FROM solicitacoes WHERE (email = ? OR login = ?) AND status = "pendente" LIMIT 1',
       [email, login]
     );
     if (existingSolicitacao.length > 0) {

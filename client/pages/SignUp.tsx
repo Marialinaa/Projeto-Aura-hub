@@ -100,7 +100,7 @@ const SignUp: React.FC = () => {
       }
 
       // Converter tipo_usuario para o valor esperado pelo backend
-      const tipo_usuario = formData.tipoUsuario === 'bolsista' ? 'bolsistas' : 'responsaveis';
+      const tipo_usuario = formData.tipoUsuario === 'bolsista' ? 'bolsista' : 'responsavel';
 
       // Enviar apenas os campos esperados pela API
       const dadosRegistro = {
