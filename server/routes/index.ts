@@ -4,6 +4,7 @@ import authRoutes from './authRoutes';
 import usuariosRoutes from './usuariosRoutes';
 import atribuicoesRoutes from './atribuicoesRoutes';
 import horariosRoutes from './horariosRoutes';
+import { testarEmail } from '../controllers/emailTestController';
 
 const router = express.Router();
 
@@ -16,6 +17,9 @@ router.get('/test', (_req, res) => {
     port: process.env.PORT || 3005
   });
 });
+
+// Rota de teste de email
+router.get('/test-email', testarEmail);
 
 // Rota que retorna configuração útil para clientes em desenvolvimento
 // Detecta o IP local da máquina para facilitar o uso do frontend em outros dispositivos na mesma rede

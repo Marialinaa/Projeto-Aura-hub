@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import UserModel from '../models/User';
+import { notificarAdminNovoUsuario } from '../email';
 
 const listarUsuarios = async (req: Request, res: Response) => {
   try {
@@ -90,19 +91,41 @@ const criarResponsavel = async (req: Request, res: Response) => {
       login: email.split('@')[0], // Login padrão baseado no email
       senha_hash: senha || 'responsavel123', // Senha padrão ou fornecida
       tipo_usuario: 'responsavel',
-      status: 'aprovado'
+      status: 'pendente' // Aguardando aprovação do admin
     });
+    
+    // Enviar notificação por email para o administrador
+    try {
+      console.log('📧 Enviando notificação para administrador...');
+      const emailResult = await notificarAdminNovoUsuario({
+        nome: nomeCompleto,
+        email,
+        login: email.split('@')[0],
+        tipo_usuario: 'responsavel',
+        funcao,
+        instituicao
+      });
+      
+      if (emailResult.success) {
+        console.log('✅ Email enviado com sucesso para administrador');
+      } else {
+        console.log('⚠️ Falha ao enviar email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('❌ Erro no envio de email:', emailError);
+    }
     
     console.log('✅ Responsável criado com sucesso:', { id: newUser.id, nome: nomeCompleto, email });
     return res.status(201).json({
       success: true,
-      message: 'Responsável criado com sucesso',
+      message: 'Solicitação enviada com sucesso! Aguarde aprovação do administrador.',
+      aviso: 'O administrador foi notificado por email e analisará sua solicitação em breve.',
       data: {
         id: newUser.id,
         nomeCompleto,
         email,
         tipo_usuario: 'responsavel',
-        status: 'aprovado',
+        status: 'pendente',
         funcao,
         instituicao
       }
@@ -149,19 +172,43 @@ const criarBolsista = async (req: Request, res: Response) => {
       login: matricula || email.split('@')[0], // Matrícula ou login baseado no email
       senha_hash: senha || 'bolsista123', // Senha padrão ou fornecida
       tipo_usuario: 'bolsista',
-      status: 'aprovado'
+      status: 'pendente' // Aguardando aprovação do admin
     });
+    
+    // Enviar notificação por email para o administrador
+    try {
+      console.log('📧 Enviando notificação para administrador...');
+      const emailResult = await notificarAdminNovoUsuario({
+        nome: nomeCompleto,
+        email,
+        login: matricula || email.split('@')[0],
+        tipo_usuario: 'bolsista',
+        matricula,
+        curso,
+        periodo,
+        instituicao
+      });
+      
+      if (emailResult.success) {
+        console.log('✅ Email enviado com sucesso para administrador');
+      } else {
+        console.log('⚠️ Falha ao enviar email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('❌ Erro no envio de email:', emailError);
+    }
     
     console.log('✅ Bolsista criado com sucesso:', { id: newUser.id, nome: nomeCompleto, email });
     return res.status(201).json({
       success: true,
-      message: 'Bolsista criado com sucesso',
+      message: 'Solicitação enviada com sucesso! Aguarde aprovação do administrador.',
+      aviso: 'O administrador foi notificado por email e analisará sua solicitação em breve.',
       data: {
         id: newUser.id,
         nomeCompleto,
         email,
         tipo_usuario: 'bolsista',
-        status: 'aprovado',
+        status: 'pendente',
         matricula,
         curso,
         periodo,
