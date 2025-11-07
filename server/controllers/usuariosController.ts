@@ -84,15 +84,29 @@ const criarResponsavel = async (req: Request, res: Response) => {
       });
     }
     
-    // Criar o novo responsável
-    const newUser = await UserModel.create({
+    // Criar o novo responsável na tabela SOLICITACOES (não usuarios)
+    const pool = await (await import('../utils/db')).default.getInstance();
+    const [result]: any = await pool.execute(
+      `INSERT INTO solicitacoes (nome_completo, email, login, senha_hash, tipo_usuario, status) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        nomeCompleto,
+        email,
+        email.split('@')[0],
+        senha || 'responsavel123',
+        'responsavel',
+        'pendente'
+      ]
+    );
+    
+    const newUser = {
+      id: result.insertId,
       nome_completo: nomeCompleto,
       email,
-      login: email.split('@')[0], // Login padrão baseado no email
-      senha_hash: senha || 'responsavel123', // Senha padrão ou fornecida
+      login: email.split('@')[0],
       tipo_usuario: 'responsavel',
-      status: 'pendente' // Aguardando aprovação do admin
-    });
+      status: 'pendente'
+    };
     
     // Enviar notificação por email para o administrador
     try {
@@ -165,15 +179,29 @@ const criarBolsista = async (req: Request, res: Response) => {
       });
     }
     
-    // Criar o novo bolsista
-    const newUser = await UserModel.create({
+    // Criar o novo bolsista na tabela SOLICITACOES (não usuarios)
+    const pool2 = await (await import('../utils/db')).default.getInstance();
+    const [result2]: any = await pool2.execute(
+      `INSERT INTO solicitacoes (nome_completo, email, login, senha_hash, tipo_usuario, status) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        nomeCompleto,
+        email,
+        matricula || email.split('@')[0],
+        senha || 'bolsista123',
+        'bolsista',
+        'pendente'
+      ]
+    );
+    
+    const newUser = {
+      id: result2.insertId,
       nome_completo: nomeCompleto,
       email,
-      login: matricula || email.split('@')[0], // Matrícula ou login baseado no email
-      senha_hash: senha || 'bolsista123', // Senha padrão ou fornecida
+      login: matricula || email.split('@')[0],
       tipo_usuario: 'bolsista',
-      status: 'pendente' // Aguardando aprovação do admin
-    });
+      status: 'pendente'
+    };
     
     // Enviar notificação por email para o administrador
     try {
