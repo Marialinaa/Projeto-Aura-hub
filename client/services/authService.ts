@@ -48,9 +48,23 @@ const testConnectivity = async () => {
 
 
 
-// Registro e outras funções mantidas
+// Registro usando endpoints que funcionam
 const register = async (data: any) => {
-  return api.post("/auth/register", data);
+  // Mapear dados para o formato que os controllers esperam (apenas campos que existem na tabela)
+  const dadosFormatados = {
+    nomeCompleto: data.nome,
+    email: data.email,
+    senha: data.senha
+    // Removidos: login, matricula, funcao, instituicao (não existem na tabela solicitacoes)
+  };
+  
+  // Usar endpoint específico baseado no tipo
+  const endpoint = data.tipo_usuario === 'bolsista' 
+    ? '/usuarios/bolsista' 
+    : '/usuarios/responsavel';
+    
+  console.log(`🔄 Usando endpoint: ${endpoint}`);
+  return api.post(endpoint, dadosFormatados);
 };
 
 const registrarEntrada = async (bolsista_id: string, atividade?: string) => {
