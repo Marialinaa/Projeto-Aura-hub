@@ -4,6 +4,7 @@ import authRoutes from './authRoutes';
 import usuariosRoutes from './usuariosRoutes';
 import atribuicoesRoutes from './atribuicoesRoutes';
 import horariosRoutes from './horariosRoutes';
+import registrosRoutes from './registrosRoutes';
 import { testarEmail } from '../controllers/emailTestController';
 
 const router = express.Router();
@@ -15,6 +16,21 @@ router.get('/test', (_req, res) => {
     message: 'API funcionando normalmente',
     timestamp: new Date().toISOString(),
     port: process.env.PORT || 3005
+  });
+});
+
+// NOVO: Rota específica para verificar sistema
+router.get('/sistema-status', (_req, res) => {
+  res.json({
+    success: true,
+    sistema: 'NOVO',
+    versao: '2.0.0-DEPLOY-FORCADO',
+    timestamp: new Date().toISOString(),
+    auth: {
+      login: '/api/auth/login',
+      register: '/api/auth/register',
+      status: 'ATIVO - SISTEMA NOVO'
+    }
   });
 });
 
@@ -60,5 +76,6 @@ router.use('/auth', authRoutes);
 router.use('/usuarios', usuariosRoutes);
 router.use('/atribuicoes', atribuicoesRoutes);
 router.use('/horarios', horariosRoutes);
+router.use('/registros', registrosRoutes);
 
 export default router;

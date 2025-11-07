@@ -25,7 +25,8 @@ function handleDatabaseError(error: any, res: Response) {
 // ============================================
 export const handleLogin = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("🔐 [handleLogin] Iniciando função de login");
+    console.log("🔐 [SISTEMA NOVO v2.0] Iniciando função de login");
+    console.log("🆕 [DEPLOY FORÇADO] HandleLogin executando - Sistema novo ativo!");
     
     const { email, password } = req.body;
     console.log("🔐 Tentativa de login:", { email });
@@ -164,7 +165,8 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 // ============================================
 export const handleRegister = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("📝 [handleRegister] Iniciando função de registro");
+    console.log("📝 [SISTEMA NOVO v2.0] Iniciando função de registro");
+    console.log("🆕 [DEPLOY FORÇADO] HandleRegister executando - Sistema novo ativo!");
     
     const { nome, funcao, endereco, email, login, senha, tipoUsuario } = req.body;
     console.log("📝 Tentativa de registro:", { email, nome, funcao, tipoUsuario });

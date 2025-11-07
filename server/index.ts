@@ -86,9 +86,11 @@ app.get('/health', async (_req: Request, res: Response) => {
 app.get('/', (_req: Request, res: Response) => {
   res.json({
     name: 'Aura-Hub API',
-    version: '1.0.0',
+    version: '2.0.0-DEPLOY-FORCADO',
     status: 'running',
     environment: NODE_ENV,
+    timestamp: new Date().toISOString(),
+    deployStatus: 'SISTEMA NOVO ATIVO',
     endpoints: {
       health: '/health',
       api: '/api',
