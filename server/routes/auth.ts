@@ -34,7 +34,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       console.log("❌ [handleLogin] Campos obrigatórios não fornecidos");
       res.status(400).json({
         success: false,
-        message: "Email e senha são obrigatórios",
+        message: "SISTEMA NOVO - Email e senha são obrigatórios",
       });
       return;
     }
@@ -59,7 +59,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       console.log("❌ [handleLogin] Usuário não encontrado");
       res.status(404).json({
         success: false,
-        message: "Usuário não encontrado ou não aprovado. Verifique se sua conta foi aprovada pelo administrador."
+        message: "SISTEMA NOVO - Usuário não encontrado ou não aprovado. Verifique se sua conta foi aprovada pelo administrador."
       });
       return;
     }
