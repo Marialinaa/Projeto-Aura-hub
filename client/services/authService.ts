@@ -37,13 +37,27 @@ const testConnectivity = async () => {
   }
 };
 
-// LOGIN para compatibilidade PHP
-  const login = async (login: string, senha: string) => {
-  return api.post(
+// LOGIN atualizado para o formato correto
+const login = async (email: string, password: string) => {
+  console.log("🔐 Tentando login com:", { email });
+  
+  const response = await api.post(
     "/auth/login",
-    { login, senha },
+    { email, password },
     { headers: { "Content-Type": "application/json" } }
   );
+  
+  console.log("✅ Resposta do login:", response.data);
+  
+  // Se o login foi bem-sucedido, salvar dados do usuário
+  if (response.data.success && response.data.user) {
+    localStorage.setItem("user", JSON.stringify(response.data.user));
+    if (response.data.token) {
+      localStorage.setItem("token", response.data.token);
+    }
+  }
+  
+  return response;
 };
 
 

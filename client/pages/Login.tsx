@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showDebugConsole, setShowDebugConsole] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>({});
-  const [formData, setFormData] = useState({ login: "", senha: "" });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -43,7 +43,7 @@ const Login: React.FC = () => {
       },
       localStorage: {
         hasToken: !!localStorage.getItem("token"),
-        hasUser: !!localStorage.getItem("usuario"),
+        hasUser: !!localStorage.getItem("user"),
       },
     };
 
@@ -58,7 +58,7 @@ const Login: React.FC = () => {
       const response = await fetch(`${diagnostics.apiURL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login: "teste", senha: "teste123" }),
+        body: JSON.stringify({ email: "teste@email.com", password: "teste123" }),
       });
 
       diagnostics.endpointTests = {
@@ -88,37 +88,52 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const { login, senha } = formData;
-    if (!login || !senha) {
-      toast({ title: "❌ Preencha login e senha" });
+    const { email, password } = formData;
+    if (!email || !password) {
+      toast({ title: "❌ Preencha email e senha" });
       return;
     }
 
-    console.log("Tentando fazer login:", { login, senha });
+    console.log("🔐 Tentando fazer login:", { email });
     setIsLoading(true);
     setMessage("");
 
     try {
-      const response = await authService.login(login, senha);
-      console.log("Login bem-sucedido:", response.data);
+      const response = await authService.login(email, password);
+      console.log("✅ Login bem-sucedido:", response.data);
 
       if (response.data?.success) {
-        const { token, usuario, redirect } = response.data.data;
+        const { user, redirectTo } = response.data;
+        
+        setMessage(`✅ Login realizado com sucesso! Bem-vindo, ${user?.nome || "usuário"}!`);
 
-        // Salva no localStorage
-        if (token) localStorage.setItem("token", token);
-        if (usuario) localStorage.setItem("usuario", JSON.stringify(usuario));
-
-        setMessage(`✅ Login realizado com sucesso! Bem-vindo, ${usuario?.nome_completo || "usuário"}!`);
-
-        // Redireciona para o painel ou rota da API
-        navigate(redirect || "/painel");
+        // Aguardar um pouco para mostrar a mensagem
+        setTimeout(() => {
+          // Redirecionar baseado no tipo de usuário
+          if (redirectTo) {
+            console.log("🔄 Redirecionando para:", redirectTo);
+            navigate(redirectTo);
+          } else {
+            // Fallback baseado no tipo de usuário
+            if (user.tipo_usuario === 'bolsista') {
+              navigate("/bolsista-dashboard");
+            } else if (user.tipo_usuario === 'responsavel') {
+              navigate("/responsavel-dashboard");
+            } else if (user.tipo_usuario === 'admin') {
+              navigate("/admin-dashboard");
+            } else {
+              navigate("/dashboard");
+            }
+          }
+        }, 1500);
       } else {
-        setMessage("❌ Credenciais inválidas. Verifique seu login e senha.");
+        setMessage(response.data?.message || "❌ Credenciais inválidas. Verifique seu email e senha.");
       }
     } catch (err: any) {
-      console.error("Erro no login:", err);
-      setMessage("❌ Erro ao tentar logar. Tente novamente mais tarde.");
+      console.error("❌ Erro no login:", err);
+      const errorMessage = err.response?.data?.message || "❌ Erro ao tentar fazer login. Tente novamente mais tarde.";
+      setMessage(errorMessage);
+      toast({ title: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -161,27 +176,27 @@ const Login: React.FC = () => {
           <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login">Login</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="login"
-                  name="login"
-                  type="text"
+                  id="email"
+                  name="email"
+                  type="email"
                   required
-                  value={formData.login}
+                  value={formData.email}
                   onChange={handleChange}
-                  placeholder="Digite seu login"
+                  placeholder="Digite seu email"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="senha">Senha</Label>
+                <Label htmlFor="password">Senha</Label>
                 <div className="relative">
                   <Input
-                    id="senha"
-                    name="senha"
+                    id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
-                    value={formData.senha}
+                    value={formData.password}
                     onChange={handleChange}
                     placeholder="Digite sua senha"
                   />
